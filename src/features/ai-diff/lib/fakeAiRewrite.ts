@@ -12,10 +12,6 @@ export function fakeAiRewrite(text: string, instruction: string) {
     .replaceAll("하지만", "다만")
     .replaceAll("필요하다", "필요합니다");
 
-  if (instruction && instruction.trim().length > 0) {
-    result = `${result}\n\n> 요청 반영: ${instruction.trim()}`;
-  }
-
   if (!/[.!?]$/.test(result)) {
     result += ".";
   }

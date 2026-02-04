@@ -52,7 +52,7 @@ export function App() {
         {
           key: "Mod-l",
           run: () => {
-            setIsAiOpen(true);
+            setIsAiOpen((prev) => !prev);
             return true;
           },
         },
@@ -169,6 +169,9 @@ export function App() {
           docText={docText}
           selection={selection}
           extensions={extensions}
+          pendingChange={pendingChange}
+          onAcceptChange={acceptChange}
+          onUndoChange={undoChange}
           onEditorReady={(view) => {
             editorRef.current = view;
           }}
