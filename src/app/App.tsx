@@ -1,14 +1,15 @@
 import { useMemo, useRef, useState } from "react";
 import { Decoration, EditorView, keymap } from "@codemirror/view";
 import { markdown } from "@codemirror/lang-markdown";
+import { invoke } from "@tauri-apps/api/core";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { readTextFile, writeTextFile } from "@tauri-apps/plugin-fs";
 import { EditorPanel } from "@/widgets/editor-panel";
 import { AiPanel } from "@/widgets/ai-panel";
 import { Topbar } from "@/widgets/topbar";
-import { DEFAULT_DOC } from "@/shared/config";
+import { DEFAULT_DOC, MODEL_OPTIONS } from "@/shared/config";
 import { SelectionState, PendingChange } from "@/shared/model";
-import { buildDiffHtml, fakeAiRewrite, DiffWidget } from "@/features/ai-diff";
+import { buildDiffHtml, DiffWidget } from "@/features/ai-diff";
 import "../App.css";
 
 const DEFAULT_SELECTION: SelectionState = { from: 0, to: 0, text: "" };
@@ -23,6 +24,7 @@ export function App() {
   const [status, setStatus] = useState("준비됨");
   const [filePath, setFilePath] = useState("");
   const [isAiOpen, setIsAiOpen] = useState(false);
+  const [modelId, setModelId] = useState(MODEL_OPTIONS[0]?.id ?? "gpt-4o-mini");
 
   const previewExtension = useMemo(() => {
     if (!pendingChange) return null;
@@ -110,17 +112,26 @@ export function App() {
     setIsBusy(true);
     setStatus("AI가 수정안을 만들고 있어요...");
 
-    await new Promise((resolve) => setTimeout(resolve, 650));
-    const suggestion = fakeAiRewrite(selection.text, userPrompt);
+    try {
+      const suggestion = await invoke<string>("rewrite_text", {
+        model: modelId,
+        prompt: userPrompt,
+        selectedText: selection.text,
+      });
 
-    setPendingChange({
-      from: selection.from,
-      to: selection.to,
-      originalText: selection.text,
-      suggestedText: suggestion,
-    });
-    setIsBusy(false);
-    setStatus("수정안 준비 완료. 적용하거나 되돌릴 수 있어요.");
+      setPendingChange({
+        from: selection.from,
+        to: selection.to,
+        originalText: selection.text,
+        suggestedText: suggestion,
+      });
+      setStatus("수정안 준비 완료. 적용하거나 되돌릴 수 있어요.");
+    } catch (error) {
+      console.error(error);
+      setStatus("AI 요청에 실패했어요. 키 설정을 확인해 주세요.");
+    } finally {
+      setIsBusy(false);
+    }
   }
 
   function acceptChange() {
@@ -182,9 +193,12 @@ export function App() {
         {isAiOpen ? (
           <AiPanel
             userPrompt={userPrompt}
+            modelId={modelId}
+            modelOptions={MODEL_OPTIONS}
             pendingChange={pendingChange}
             isBusy={isBusy}
             status={status}
+            onModelChange={setModelId}
             onUserPromptChange={setUserPrompt}
             onRequestChange={requestChange}
             onAcceptChange={acceptChange}

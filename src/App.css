@@ -1,1 +1,11 @@
 @import "tailwindcss";
+
+:root {
+  font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+}
+
+.cm-editor {
+  font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  font-size: 15px;
+  line-height: 1.7;
+}

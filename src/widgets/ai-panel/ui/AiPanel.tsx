@@ -3,9 +3,12 @@ import { PendingChange } from "@/shared/model";
 
 type AiPanelProps = {
   userPrompt: string;
+  modelId: string;
+  modelOptions: { id: string; label: string }[];
   pendingChange: PendingChange | null;
   isBusy: boolean;
   status: string;
+  onModelChange: (value: string) => void;
   onUserPromptChange: (value: string) => void;
   onRequestChange: () => void;
   onAcceptChange: () => void;
@@ -14,9 +17,12 @@ type AiPanelProps = {
 
 export function AiPanel({
   userPrompt,
+  modelId,
+  modelOptions,
   pendingChange,
   isBusy,
   status,
+  onModelChange,
   onUserPromptChange,
   onRequestChange,
   onAcceptChange,
@@ -24,6 +30,20 @@ export function AiPanel({
 }: AiPanelProps) {
   return (
     <aside className="flex flex-col gap-4 border-l border-zinc-200 bg-white p-4">
+      <div className="space-y-2">
+        <div className="text-sm font-semibold text-zinc-800">모델</div>
+        <select
+          className="w-full rounded border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-800 focus:border-emerald-500 focus:outline-none"
+          value={modelId}
+          onChange={(event) => onModelChange(event.target.value)}
+        >
+          {modelOptions.map((option) => (
+            <option key={option.id} value={option.id}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </div>
       <div className="space-y-3">
         <div className="text-sm font-semibold text-zinc-800">수정 요청</div>
         <textarea
