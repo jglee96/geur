@@ -48,9 +48,6 @@ export function App() {
     const list = [
       markdown(),
       editableExtension,
-      EditorView.theme({
-        ".cm-gutters": { display: "none" },
-      }),
       keymap.of([
         {
           key: "Mod-l",
@@ -154,7 +151,7 @@ export function App() {
   }
 
   return (
-    <main className="app-shell">
+    <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.14),transparent_55%),radial-gradient(circle_at_bottom_right,rgba(251,191,36,0.18),transparent_60%),linear-gradient(120deg,#f8f1e6_0%,#f2e8d8_100%)] p-6 font-sans text-zinc-900">
       <Topbar
         filePath={filePath}
         isAiOpen={isAiOpen}
@@ -163,7 +160,11 @@ export function App() {
         onToggleAi={() => setIsAiOpen((prev) => !prev)}
       />
 
-      <section className={`workspace ${isAiOpen ? "ai-open" : "ai-closed"}`}>
+      <section
+        className={`mt-5 grid gap-5 ${
+          isAiOpen ? "grid-cols-1 xl:grid-cols-[1.1fr_0.9fr]" : "grid-cols-1"
+        }`}
+      >
         <EditorPanel
           docText={docText}
           selection={selection}

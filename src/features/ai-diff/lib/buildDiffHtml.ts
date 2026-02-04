@@ -7,12 +7,12 @@ export function buildDiffHtml(originalText: string, suggestedText: string) {
     .map((part) => {
       const safe = escapeHtml(part.value);
       if (part.added) {
-        return `<span class="diff-added">${safe}</span>`;
+        return `<span class="rounded bg-emerald-200/60 px-0.5 text-emerald-900">${safe}</span>`;
       }
       if (part.removed) {
-        return `<span class="diff-removed">${safe}</span>`;
+        return `<span class="rounded bg-rose-200/50 px-0.5 text-rose-700 line-through">${safe}</span>`;
       }
-      return `<span class="diff-unchanged">${safe}</span>`;
+      return `<span class="text-zinc-800">${safe}</span>`;
     })
     .join("");
 }

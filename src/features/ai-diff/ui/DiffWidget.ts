@@ -10,7 +10,7 @@ export class DiffWidget extends WidgetType {
 
   toDOM() {
     const container = document.createElement("span");
-    container.className = "diff-preview";
+    container.className = "whitespace-pre-wrap font-mono text-sm leading-7";
     container.innerHTML = this.html;
     return container;
   }
