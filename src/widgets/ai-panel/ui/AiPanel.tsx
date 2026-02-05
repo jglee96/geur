@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo } from "react";
 import { PendingChange } from "@/shared/model";
 
 type AiPanelProps = {
@@ -15,7 +15,7 @@ type AiPanelProps = {
   onUndoChange: () => void;
 };
 
-export function AiPanel({
+export const AiPanel = memo(function AiPanel({
   userPrompt,
   modelId,
   modelOptions,
@@ -99,4 +99,4 @@ export function AiPanel({
       </div>
     </aside>
   );
-}
+});

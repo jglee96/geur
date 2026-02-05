@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo } from "react";
 
 type TopbarProps = {
   filePath: string;
@@ -8,7 +8,7 @@ type TopbarProps = {
   onToggleAi: () => void;
 };
 
-export function Topbar({
+export const Topbar = memo(function Topbar({
   filePath,
   isAiOpen,
   onOpen,
@@ -65,4 +65,4 @@ export function Topbar({
       </div>
     </header>
   );
-}
+});

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import CodeMirror from "@uiw/react-codemirror";
 import { ViewUpdate, EditorView } from "@codemirror/view";
 import type { Extension } from "@codemirror/state";
@@ -16,7 +16,7 @@ type EditorPanelProps = {
   onSelectionChange: (selection: SelectionState) => void;
 };
 
-export function EditorPanel({
+export const EditorPanel = memo(function EditorPanel({
   docText,
   selection,
   extensions,
@@ -29,6 +29,10 @@ export function EditorPanel({
 }: EditorPanelProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [view, setView] = useState<EditorView | null>(null);
+  const basicSetup = useMemo(
+    () => ({ lineNumbers: false, foldGutter: false }),
+    [],
+  );
   const [floatingStyle, setFloatingStyle] = useState<{
     left: number;
     top: number;
@@ -54,7 +58,30 @@ export function EditorPanel({
       top: Math.max(8, rawTop),
       visible: true,
     });
-  }, [pendingChange, view, selection]);
+  }, [pendingChange, view]);
+
+  const handleCreateEditor = useCallback(
+    (nextView: EditorView) => {
+      onEditorReady(nextView);
+      setView(nextView);
+    },
+    [onEditorReady],
+  );
+
+  const handleUpdate = useCallback(
+    (update: ViewUpdate) => {
+      if (update.docChanged) {
+        onDocChange(update.state.doc.toString());
+      }
+      if (update.selectionSet) {
+        const { from, to } = update.state.selection.main;
+        const selectedText =
+          from === to ? "" : update.state.sliceDoc(from, to);
+        onSelectionChange({ from, to, text: selectedText });
+      }
+    },
+    [onDocChange, onSelectionChange],
+  );
 
   return (
     <div className="flex min-h-[420px] flex-col gap-2 bg-zinc-100 p-4">
@@ -70,23 +97,10 @@ export function EditorPanel({
             value={docText}
             height="100%"
             className="h-full"
-            basicSetup={{ lineNumbers: false, foldGutter: false }}
+            basicSetup={basicSetup}
             extensions={extensions}
-            onCreateEditor={(view) => {
-              onEditorReady(view);
-              setView(view);
-            }}
-            onUpdate={(update: ViewUpdate) => {
-              if (update.docChanged) {
-                onDocChange(update.state.doc.toString());
-              }
-              if (update.selectionSet) {
-                const { from, to } = update.state.selection.main;
-                const selectedText =
-                  from === to ? "" : update.state.sliceDoc(from, to);
-                onSelectionChange({ from, to, text: selectedText });
-              }
-            }}
+            onCreateEditor={handleCreateEditor}
+            onUpdate={handleUpdate}
           />
         </div>
         {pendingChange && floatingStyle.visible ? (
@@ -114,4 +128,4 @@ export function EditorPanel({
       </div>
     </div>
   );
-}
+});

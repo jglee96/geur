@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { Decoration, EditorView, keymap } from "@codemirror/view";
 import { markdown } from "@codemirror/lang-markdown";
 import { invoke } from "@tauri-apps/api/core";
@@ -10,7 +10,7 @@ import { Topbar } from "@/widgets/topbar";
 import { DEFAULT_DOC, MODEL_OPTIONS } from "@/shared/config";
 import { SelectionState, PendingChange } from "@/shared/model";
 import { buildDiffHtml, DiffWidget } from "@/features/ai-diff";
-import "../App.css";
+import "./App.css";
 
 const DEFAULT_SELECTION: SelectionState = { from: 0, to: 0, text: "" };
 
@@ -54,7 +54,7 @@ export function App() {
         {
           key: "Mod-l",
           run: () => {
-            setIsAiOpen((prev) => !prev);
+            handleToggleAi();
             return true;
           },
         },
@@ -62,9 +62,9 @@ export function App() {
     ];
     if (previewExtension) list.push(previewExtension);
     return list;
-  }, [editableExtension, previewExtension]);
+  }, [editableExtension, handleToggleAi, previewExtension]);
 
-  async function handleOpen() {
+  const handleOpen = useCallback(async () => {
     try {
       const selected = await open({
         multiple: false,
@@ -81,9 +81,9 @@ export function App() {
       setStatus("파일 열기에 실패했어요.");
       console.error(error);
     }
-  }
+  }, []);
 
-  async function handleSave() {
+  const handleSave = useCallback(async () => {
     try {
       let path = filePath;
       if (!path) {
@@ -100,9 +100,9 @@ export function App() {
       setStatus("파일 저장에 실패했어요.");
       console.error(error);
     }
-  }
+  }, [docText, filePath]);
 
-  async function requestChange() {
+  const requestChange = useCallback(async () => {
     if (isBusy || pendingChange) return;
     if (!selection.text || selection.from === selection.to) {
       setStatus("선택된 텍스트가 없어요.");
@@ -132,9 +132,9 @@ export function App() {
     } finally {
       setIsBusy(false);
     }
-  }
+  }, [isBusy, modelId, pendingChange, selection, userPrompt]);
 
-  function acceptChange() {
+  const acceptChange = useCallback(() => {
     if (!pendingChange) return;
     if (editorRef.current) {
       editorRef.current.dispatch({
@@ -153,13 +153,29 @@ export function App() {
     }
     setPendingChange(null);
     setStatus("수정이 적용되었습니다.");
-  }
+  }, [pendingChange]);
 
-  function undoChange() {
+  const undoChange = useCallback(() => {
     if (!pendingChange) return;
     setPendingChange(null);
     setStatus("수정이 취소되었습니다.");
-  }
+  }, [pendingChange]);
+
+  const handleToggleAi = useCallback(() => {
+    setIsAiOpen((prev) => !prev);
+  }, []);
+
+  const handleEditorReady = useCallback((view: EditorView) => {
+    editorRef.current = view;
+  }, []);
+
+  const handleDocChange = useCallback((value: string) => {
+    setDocText(value);
+  }, []);
+
+  const handleSelectionChange = useCallback((nextSelection: SelectionState) => {
+    setSelection(nextSelection);
+  }, []);
 
   return (
     <main className="min-h-screen bg-[#f3f3f3] p-4 font-sans text-zinc-900">
@@ -168,7 +184,7 @@ export function App() {
         isAiOpen={isAiOpen}
         onOpen={handleOpen}
         onSave={handleSave}
-        onToggleAi={() => setIsAiOpen((prev) => !prev)}
+        onToggleAi={handleToggleAi}
       />
 
       <section
@@ -183,11 +199,9 @@ export function App() {
           pendingChange={pendingChange}
           onAcceptChange={acceptChange}
           onUndoChange={undoChange}
-          onEditorReady={(view) => {
-            editorRef.current = view;
-          }}
-          onDocChange={setDocText}
-          onSelectionChange={setSelection}
+          onEditorReady={handleEditorReady}
+          onDocChange={handleDocChange}
+          onSelectionChange={handleSelectionChange}
         />
 
         {isAiOpen ? (
