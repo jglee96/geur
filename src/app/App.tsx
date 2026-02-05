@@ -198,9 +198,9 @@ export function App() {
         <aside
           className={`${
             isLeftOpen
-              ? "w-64 border border-zinc-200 bg-white px-4 py-4 opacity-100"
-              : "w-0 border-0 px-0 opacity-0"
-          } rounded-xl transition-[width,opacity,transform] duration-200 ease-in-out max-xl:hidden`}
+              ? "w-64 border border-zinc-200 bg-white px-4 py-4 opacity-100 max-xl:w-full"
+              : "w-0 border-0 px-0 opacity-0 max-xl:hidden"
+          } rounded-xl transition-[width,opacity,transform] duration-200 ease-in-out`}
         >
           <div className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500">
             로컬 폴더
@@ -227,9 +227,9 @@ export function App() {
         <aside
           className={`${
             isAiOpen
-              ? "w-72 border border-zinc-200 bg-white px-4 py-4 opacity-100"
-              : "w-0 border-0 px-0 opacity-0"
-          } rounded-xl transition-[width,opacity,transform] duration-200 ease-in-out max-xl:hidden`}
+              ? "w-72 border border-zinc-200 bg-white px-4 py-4 opacity-100 max-xl:w-full"
+              : "w-0 border-0 px-0 opacity-0 max-xl:hidden"
+          } rounded-xl transition-[width,opacity,transform] duration-200 ease-in-out`}
         >
           {isAiOpen ? (
             <AiPanel
