@@ -3,6 +3,7 @@ import CodeMirror from "@uiw/react-codemirror";
 import { ViewUpdate, EditorView } from "@codemirror/view";
 import type { Extension } from "@codemirror/state";
 import { PendingChange, SelectionState } from "@/shared/model";
+import { Button, Card, CardContent, CardHeader } from "@/shared/ui";
 
 type EditorPanelProps = {
   docText: string;
@@ -85,47 +86,52 @@ export const EditorPanel = memo(function EditorPanel({
 
   return (
     <div className="flex w-full max-w-[900px] flex-col gap-2">
-      <div className="text-right text-xs text-zinc-500">
+      <div className="text-right text-xs text-muted-foreground">
         선택 길이: {selection.text.length}자
       </div>
-      <div
-        ref={containerRef}
-        className="relative rounded-none bg-transparent p-0"
-      >
-        <div className="mx-auto min-h-[65vh] w-full max-w-[900px] bg-white px-2 py-6 outline-none">
-          <CodeMirror
-            value={docText}
-            height="100%"
-            className="h-full"
-            basicSetup={basicSetup}
-            extensions={extensions}
-            onCreateEditor={handleCreateEditor}
-            onUpdate={handleUpdate}
-          />
-        </div>
-        {pendingChange && floatingStyle.visible ? (
-          <div
-            className="absolute z-10 flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-2.5 py-1 text-xs text-zinc-600 shadow"
-            style={{ left: floatingStyle.left, top: floatingStyle.top }}
-          >
-            <span className="text-zinc-500">AI 변경</span>
-            <button
-              type="button"
-              className="rounded-full border border-blue-600 bg-blue-600 px-2.5 py-1 text-xs font-semibold text-white hover:border-blue-700 hover:bg-blue-700"
-              onClick={onAcceptChange}
-            >
-              Keep
-            </button>
-            <button
-              type="button"
-              className="rounded-full border border-zinc-200 bg-white px-2.5 py-1 text-xs font-medium text-zinc-700 hover:border-zinc-400"
-              onClick={onUndoChange}
-            >
-              Undo
-            </button>
+      <Card>
+        <CardHeader className="py-2 text-xs text-muted-foreground">
+          문서
+        </CardHeader>
+        <CardContent>
+          <div ref={containerRef} className="relative">
+            <div className="min-h-[65vh] bg-background">
+              <CodeMirror
+                value={docText}
+                height="100%"
+                className="h-full"
+                basicSetup={basicSetup}
+                extensions={extensions}
+                onCreateEditor={handleCreateEditor}
+                onUpdate={handleUpdate}
+              />
+            </div>
+            {pendingChange && floatingStyle.visible ? (
+              <div
+                className="absolute z-10 flex items-center gap-2 rounded-md border border-border bg-background px-2.5 py-1 text-xs text-muted-foreground shadow-sm"
+                style={{ left: floatingStyle.left, top: floatingStyle.top }}
+              >
+                <span>AI 변경</span>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={onAcceptChange}
+                >
+                  Keep
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={onUndoChange}
+                >
+                  Undo
+                </Button>
+              </div>
+            ) : null}
           </div>
-        ) : null}
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 });

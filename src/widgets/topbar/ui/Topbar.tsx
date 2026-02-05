@@ -1,4 +1,12 @@
 import React, { memo } from "react";
+import {
+  Button,
+  Separator,
+  Switch,
+  Tabs,
+  TabsList,
+  TabsTrigger,
+} from "@/shared/ui";
 
 type TopbarProps = {
   filePath: string;
@@ -20,66 +28,36 @@ export const Topbar = memo(function Topbar({
   onToggleLeft,
 }: TopbarProps) {
   return (
-    <header className="border-b border-zinc-200 bg-white">
-      <div className="flex items-center gap-4 px-7 pt-3 text-xs text-zinc-600">
-        <div className="flex items-center gap-3">
-          <button className="border-b-2 border-blue-600 pb-2 text-xs font-semibold text-zinc-900">
-            홈
-          </button>
-          <button className="pb-2 text-xs text-zinc-500 hover:text-zinc-900">
-            삽입
-          </button>
-          <button className="pb-2 text-xs text-zinc-500 hover:text-zinc-900">
-            보기
-          </button>
-        </div>
-        <div className="ml-auto rounded-full bg-zinc-100 px-3 py-1 text-[11px] text-zinc-600">
+    <header className="border-b bg-background">
+      <div className="flex flex-wrap items-center gap-4 px-6 py-3">
+        <Tabs defaultValue="home">
+          <TabsList>
+            <TabsTrigger value="home">홈</TabsTrigger>
+            <TabsTrigger value="insert">삽입</TabsTrigger>
+            <TabsTrigger value="view">보기</TabsTrigger>
+          </TabsList>
+        </Tabs>
+        <div className="ml-auto text-xs text-muted-foreground">
           {filePath ? filePath : "새 문서"}
         </div>
       </div>
-      <div className="flex flex-wrap items-center gap-2 border-t border-zinc-100 px-6 py-2">
-        <button
-          type="button"
-          onClick={onToggleLeft}
-          className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-xs text-zinc-600 hover:border-zinc-300 hover:text-zinc-900"
-        >
-          <span
-            className={`h-2 w-2 rounded-full border ${
-              isLeftOpen
-                ? "border-blue-600 bg-blue-600"
-                : "border-zinc-300 bg-zinc-200"
-            }`}
-          />
+      <Separator />
+      <div className="flex flex-wrap items-center gap-4 px-6 py-3 text-xs text-muted-foreground">
+        <div className="flex items-center gap-2">
           폴더
-        </button>
-        <button
-          type="button"
-          onClick={onToggleAi}
-          className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-xs text-zinc-600 hover:border-zinc-300 hover:text-zinc-900"
-        >
-          <span
-            className={`h-2 w-2 rounded-full border ${
-              isAiOpen
-                ? "border-blue-600 bg-blue-600"
-                : "border-zinc-300 bg-zinc-200"
-            }`}
-          />
+          <Switch checked={isLeftOpen} onCheckedChange={onToggleLeft} />
+        </div>
+        <div className="flex items-center gap-2">
           AI 패널
-        </button>
-        <button
-          type="button"
-          onClick={onOpen}
-          className="rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-xs text-zinc-600 hover:border-zinc-300 hover:text-zinc-900"
-        >
+          <Switch checked={isAiOpen} onCheckedChange={onToggleAi} />
+        </div>
+        <Separator orientation="vertical" className="h-5" />
+        <Button size="sm" variant="outline" onClick={onOpen}>
           열기
-        </button>
-        <button
-          type="button"
-          onClick={onSave}
-          className="rounded-full border border-blue-600 bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:border-blue-700 hover:bg-blue-700"
-        >
+        </Button>
+        <Button size="sm" onClick={onSave}>
           저장
-        </button>
+        </Button>
       </div>
     </header>
   );

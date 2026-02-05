@@ -10,7 +10,6 @@ import { Topbar } from "@/widgets/topbar";
 import { DEFAULT_DOC, MODEL_OPTIONS } from "@/shared/config";
 import { SelectionState, PendingChange } from "@/shared/model";
 import { buildDiffHtml, DiffWidget } from "@/features/ai-diff";
-import "./App.css";
 
 const DEFAULT_SELECTION: SelectionState = { from: 0, to: 0, text: "" };
 
