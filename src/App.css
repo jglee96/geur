@@ -1,0 +1,39 @@
+@import "tailwindcss";
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css");
+
+:root {
+  font-family: Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto,
+    "Helvetica Neue", "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR",
+    "Malgun Gothic", sans-serif;
+}
+
+.cm-editor {
+  font-family: Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto,
+    "Helvetica Neue", "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR",
+    "Malgun Gothic", sans-serif;
+  font-size: 15px;
+  line-height: 1.7;
+  outline: none;
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent;
+}
+
+.cm-editor.cm-focused {
+  outline: none;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.cm-scroller,
+.cm-content {
+  outline: none !important;
+}
+
+.cm-focused .cm-line {
+  outline: none !important;
+}
+
+.cm-gutters {
+  border: none !important;
+}

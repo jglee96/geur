@@ -92,7 +92,7 @@ export const EditorPanel = memo(function EditorPanel({
         ref={containerRef}
         className="relative rounded-none bg-transparent p-0"
       >
-        <div className="mx-auto min-h-[65vh] w-full max-w-[900px] bg-white px-2 py-6">
+        <div className="mx-auto min-h-[65vh] w-full max-w-[900px] bg-white px-2 py-6 outline-none">
           <CodeMirror
             value={docText}
             height="100%"
