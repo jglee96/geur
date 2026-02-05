@@ -24,7 +24,16 @@ export function App() {
   const [status, setStatus] = useState("준비됨");
   const [filePath, setFilePath] = useState("");
   const [isAiOpen, setIsAiOpen] = useState(false);
+  const [isLeftOpen, setIsLeftOpen] = useState(true);
   const [modelId, setModelId] = useState(MODEL_OPTIONS[0]?.id ?? "gpt-4o-mini");
+
+  const handleToggleAi = useCallback(() => {
+    setIsAiOpen((prev) => !prev);
+  }, []);
+
+  const handleToggleLeft = useCallback(() => {
+    setIsLeftOpen((prev) => !prev);
+  }, []);
 
   const previewExtension = useMemo(() => {
     if (!pendingChange) return null;
@@ -161,10 +170,6 @@ export function App() {
     setStatus("수정이 취소되었습니다.");
   }, [pendingChange]);
 
-  const handleToggleAi = useCallback(() => {
-    setIsAiOpen((prev) => !prev);
-  }, []);
-
   const handleEditorReady = useCallback((view: EditorView) => {
     editorRef.current = view;
   }, []);
@@ -178,48 +183,75 @@ export function App() {
   }, []);
 
   return (
-    <main className="min-h-screen bg-[#f3f3f3] p-4 font-sans text-zinc-900">
+    <div className="min-h-screen bg-white font-sans text-zinc-900">
       <Topbar
         filePath={filePath}
         isAiOpen={isAiOpen}
+        isLeftOpen={isLeftOpen}
         onOpen={handleOpen}
         onSave={handleSave}
         onToggleAi={handleToggleAi}
+        onToggleLeft={handleToggleLeft}
       />
 
-      <section
-        className={`mt-3 grid gap-4 ${
-          isAiOpen ? "grid-cols-1 xl:grid-cols-[1.1fr_0.9fr]" : "grid-cols-1"
-        }`}
-      >
-        <EditorPanel
-          docText={docText}
-          selection={selection}
-          extensions={extensions}
-          pendingChange={pendingChange}
-          onAcceptChange={acceptChange}
-          onUndoChange={undoChange}
-          onEditorReady={handleEditorReady}
-          onDocChange={handleDocChange}
-          onSelectionChange={handleSelectionChange}
-        />
+      <main className="grid flex-1 grid-cols-[auto_minmax(0,1fr)_auto] gap-4 px-5 py-6 max-xl:grid-cols-1">
+        <aside
+          className={`${
+            isLeftOpen
+              ? "w-64 border border-zinc-200 bg-white px-4 py-4 opacity-100"
+              : "w-0 border-0 px-0 opacity-0"
+          } rounded-xl transition-[width,opacity,transform] duration-200 ease-in-out max-xl:hidden`}
+        >
+          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500">
+            로컬 폴더
+          </div>
+          <div className="mt-3 rounded-lg border border-dashed border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-500">
+            파일 트리는 다음 단계에서 연결할게요.
+          </div>
+        </aside>
 
-        {isAiOpen ? (
-          <AiPanel
-            userPrompt={userPrompt}
-            modelId={modelId}
-            modelOptions={MODEL_OPTIONS}
+        <section className="flex min-w-0 justify-center">
+          <EditorPanel
+            docText={docText}
+            selection={selection}
+            extensions={extensions}
             pendingChange={pendingChange}
-            isBusy={isBusy}
-            status={status}
-            onModelChange={setModelId}
-            onUserPromptChange={setUserPrompt}
-            onRequestChange={requestChange}
             onAcceptChange={acceptChange}
             onUndoChange={undoChange}
+            onEditorReady={handleEditorReady}
+            onDocChange={handleDocChange}
+            onSelectionChange={handleSelectionChange}
           />
-        ) : null}
-      </section>
-    </main>
+        </section>
+
+        <aside
+          className={`${
+            isAiOpen
+              ? "w-72 border border-zinc-200 bg-white px-4 py-4 opacity-100"
+              : "w-0 border-0 px-0 opacity-0"
+          } rounded-xl transition-[width,opacity,transform] duration-200 ease-in-out max-xl:hidden`}
+        >
+          {isAiOpen ? (
+            <AiPanel
+              userPrompt={userPrompt}
+              modelId={modelId}
+              modelOptions={MODEL_OPTIONS}
+              pendingChange={pendingChange}
+              isBusy={isBusy}
+              status={status}
+              onModelChange={setModelId}
+              onUserPromptChange={setUserPrompt}
+              onRequestChange={requestChange}
+              onAcceptChange={acceptChange}
+              onUndoChange={undoChange}
+            />
+          ) : (
+            <div className="px-2 py-2 text-xs text-zinc-400">
+              AI 패널 닫힘
+            </div>
+          )}
+        </aside>
+      </main>
+    </div>
   );
 }

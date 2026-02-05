@@ -84,15 +84,15 @@ export const EditorPanel = memo(function EditorPanel({
   );
 
   return (
-    <div className="flex min-h-[420px] flex-col gap-2 bg-zinc-100 p-4">
-      <div className="flex justify-end text-xs text-zinc-500">
+    <div className="flex w-full max-w-[900px] flex-col gap-2">
+      <div className="text-right text-xs text-zinc-500">
         선택 길이: {selection.text.length}자
       </div>
       <div
         ref={containerRef}
-        className="relative flex-1 overflow-auto bg-zinc-100"
+        className="relative rounded-none bg-transparent p-0"
       >
-        <div className="mx-auto min-h-full w-full max-w-[900px] border border-zinc-200 bg-white">
+        <div className="mx-auto min-h-[65vh] w-full max-w-[900px] bg-white px-2 py-6">
           <CodeMirror
             value={docText}
             height="100%"
@@ -105,20 +105,20 @@ export const EditorPanel = memo(function EditorPanel({
         </div>
         {pendingChange && floatingStyle.visible ? (
           <div
-            className="absolute z-10 flex items-center gap-2 rounded border border-zinc-200 bg-white px-2 py-1 text-xs shadow-sm"
+            className="absolute z-10 flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-2.5 py-1 text-xs text-zinc-600 shadow"
             style={{ left: floatingStyle.left, top: floatingStyle.top }}
           >
             <span className="text-zinc-500">AI 변경</span>
             <button
               type="button"
-              className="rounded border border-emerald-600 bg-emerald-600 px-2.5 py-1 text-xs font-semibold text-white hover:bg-emerald-700"
+              className="rounded-full border border-blue-600 bg-blue-600 px-2.5 py-1 text-xs font-semibold text-white hover:border-blue-700 hover:bg-blue-700"
               onClick={onAcceptChange}
             >
               Keep
             </button>
             <button
               type="button"
-              className="rounded border border-zinc-200 bg-white px-2.5 py-1 text-xs font-medium text-zinc-700 hover:border-zinc-400"
+              className="rounded-full border border-zinc-200 bg-white px-2.5 py-1 text-xs font-medium text-zinc-700 hover:border-zinc-400"
               onClick={onUndoChange}
             >
               Undo
