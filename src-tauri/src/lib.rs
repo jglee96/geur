@@ -1,26 +1,33 @@
 use serde::Deserialize;
 use serde_json::json;
 
-#[derive(Deserialize)]
-struct RewritePayload {
+#[tauri::command]
+async fn rewrite_text(
     model: String,
     prompt: String,
     selected_text: String,
-}
+    api_key: Option<String>,
+) -> Result<String, String> {
+    let api_key = if let Some(value) = api_key {
+        if value.trim().is_empty() {
+            String::new()
+        } else {
+            value
+        }
+    } else {
+        std::env::var("OPENAI_API_KEY")
+            .map_err(|_| "OPENAI_API_KEY가 필요합니다.")?
+    };
 
-#[tauri::command]
-async fn rewrite_text(payload: RewritePayload) -> Result<String, String> {
-    let api_key =
-        std::env::var("OPENAI_API_KEY").map_err(|_| "OPENAI_API_KEY가 필요합니다.")?;
+    if api_key.trim().is_empty() {
+        return Err("API 키가 비어 있습니다.".to_string());
+    }
 
     let system_prompt = "당신은 글을 명확하고 자연스럽게 다듬는 편집자입니다. 수정된 문장만 반환하세요.";
-    let input_text = format!(
-        "요청: {}\n\n문장:\n{}",
-        payload.prompt, payload.selected_text
-    );
+    let input_text = format!("요청: {}\n\n문장:\n{}", prompt, selected_text);
 
     let body = json!({
-        "model": payload.model,
+        "model": model,
         "instructions": system_prompt,
         "input": input_text
     });

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Decoration, EditorView, keymap } from "@codemirror/view";
 import { markdown } from "@codemirror/lang-markdown";
 import { invoke } from "@tauri-apps/api/core";
@@ -25,6 +25,14 @@ export function App() {
   const [isAiOpen, setIsAiOpen] = useState(false);
   const [isLeftOpen, setIsLeftOpen] = useState(true);
   const [modelId, setModelId] = useState(MODEL_OPTIONS[0]?.id ?? "gpt-4o-mini");
+  const [apiKey, setApiKey] = useState("");
+
+  useEffect(() => {
+    const storedKey = localStorage.getItem("openai_api_key");
+    if (storedKey) {
+      setApiKey(storedKey);
+    }
+  }, []);
 
   const handleToggleAi = useCallback(() => {
     setIsAiOpen((prev) => !prev);
@@ -121,10 +129,16 @@ export function App() {
     setStatus("AI가 수정안을 만들고 있어요...");
 
     try {
+      if (!apiKey) {
+        setStatus("API 키가 필요합니다. 상단 설정에서 입력해 주세요.");
+        setIsBusy(false);
+        return;
+      }
       const suggestion = await invoke<string>("rewrite_text", {
         model: modelId,
         prompt: userPrompt,
         selectedText: selection.text,
+        apiKey,
       });
 
       setPendingChange({
@@ -136,11 +150,17 @@ export function App() {
       setStatus("수정안 준비 완료. 적용하거나 되돌릴 수 있어요.");
     } catch (error) {
       console.error(error);
-      setStatus("AI 요청에 실패했어요. 키 설정을 확인해 주세요.");
+      const message =
+        typeof error === "string"
+          ? error
+          : error instanceof Error
+            ? error.message
+            : JSON.stringify(error);
+      setStatus(`AI 요청 실패: ${message}`);
     } finally {
       setIsBusy(false);
     }
-  }, [isBusy, modelId, pendingChange, selection, userPrompt]);
+  }, [apiKey, isBusy, modelId, pendingChange, selection, userPrompt]);
 
   const acceptChange = useCallback(() => {
     if (!pendingChange) return;
@@ -187,10 +207,16 @@ export function App() {
         filePath={filePath}
         isAiOpen={isAiOpen}
         isLeftOpen={isLeftOpen}
+        apiKey={apiKey}
         onOpen={handleOpen}
         onSave={handleSave}
         onToggleAi={handleToggleAi}
         onToggleLeft={handleToggleLeft}
+        onSaveApiKey={(value) => {
+          setApiKey(value);
+          localStorage.setItem("openai_api_key", value);
+          setStatus("API 키가 저장되었습니다.");
+        }}
       />
 
       <main className="grid flex-1 grid-cols-[auto_minmax(0,1fr)_auto] gap-4 px-5 py-6 max-xl:grid-cols-1">
