@@ -79,3 +79,11 @@ pub fn resolve_within_root(root: &Path, relative: &str) -> Result<PathBuf, Strin
     }
     Ok(joined)
 }
+
+pub fn ensure_not_root(relative: &str) -> Result<(), String> {
+    let rel = relative.trim().trim_start_matches('/');
+    if rel.is_empty() || rel == "." {
+        return Err("루트 폴더는 변경할 수 없습니다.".to_string());
+    }
+    Ok(())
+}

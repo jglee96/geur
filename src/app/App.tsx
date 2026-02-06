@@ -9,8 +9,9 @@ import { FileTreePanel } from "@/widgets/file-tree";
 import { AiPanel } from "@/widgets/ai-panel";
 import { Topbar } from "@/widgets/topbar";
 import { DEFAULT_DOC, MODEL_OPTIONS } from "@/shared/config";
-import { SelectionState, PendingChange, FileNode } from "@/shared/model";
+import { SelectionState, PendingChange } from "@/shared/model";
 import { buildDiffHtml, DiffWidget } from "@/features/ai-diff";
+import { useFileTree } from "@/features/file-tree";
 import { Toaster, ToastProviderInternal, useToast } from "@/shared/ui";
 
 const DEFAULT_SELECTION: SelectionState = { from: 0, to: 0, text: "" };
@@ -28,9 +29,18 @@ function AppContent() {
   const [isLeftOpen, setIsLeftOpen] = useState(true);
   const [modelId, setModelId] = useState(MODEL_OPTIONS[0]?.id ?? "gpt-4o-mini");
   const [apiKey, setApiKey] = useState("");
-  const [rootPath, setRootPath] = useState("");
-  const [tree, setTree] = useState<FileNode | null>(null);
-  const [selectedPath, setSelectedPath] = useState("");
+  const { push } = useToast();
+  const {
+    rootPath,
+    tree,
+    selectedPath,
+    openFolder,
+    selectPath,
+    createFile,
+    createFolder,
+    renamePath,
+    deletePath,
+  } = useFileTree({ onStatus: setStatus });
 
   useEffect(() => {
     const storedKey = localStorage.getItem("openai_api_key");
@@ -206,26 +216,11 @@ function AppContent() {
     setSelection(nextSelection);
   }, []);
 
-  const refreshTree = useCallback(async (nextRoot?: string) => {
-    const root = nextRoot ?? rootPath;
-    if (!root) return;
-    const nextTree = await invoke<FileNode>("list_tree", { rootPath: root });
-    setTree(nextTree);
-  }, [rootPath]);
-
-  const handleOpenFolder = useCallback(async () => {
-    const selected = await open({
-      directory: true,
-      multiple: false,
-    });
-    const path = Array.isArray(selected) ? selected[0] : selected;
-    if (!path) return;
-    setRootPath(path);
-    setSelectedPath("");
-    await refreshTree(path);
-  }, [refreshTree]);
-
-  const { push } = useToast();
+  const handleSaveApiKey = useCallback((value: string) => {
+    setApiKey(value);
+    localStorage.setItem("openai_api_key", value);
+    setStatus("API 키가 저장되었습니다.");
+  }, []);
 
   const openMarkdownFile = useCallback(
     async (relativePath: string) => {
@@ -249,97 +244,6 @@ function AppContent() {
     [push, rootPath],
   );
 
-  const handleSelectFile = useCallback(
-    async (relativePath: string) => {
-      setSelectedPath(relativePath);
-    },
-    [],
-  );
-
-  const handleCreateFile = useCallback(
-    async (relativePath: string) => {
-      if (!rootPath) return;
-      try {
-        await invoke("create_file", { rootPath, relativePath });
-        setStatus(`파일 생성: ${relativePath}`);
-        await refreshTree();
-      } catch (error) {
-        const message =
-          typeof error === "string"
-            ? error
-            : error instanceof Error
-              ? error.message
-              : JSON.stringify(error);
-        setStatus(`파일 생성 실패: ${message}`);
-      }
-    },
-    [refreshTree, rootPath],
-  );
-
-  const handleCreateFolder = useCallback(
-    async (relativePath: string) => {
-      if (!rootPath) return;
-      try {
-        await invoke("create_folder", { rootPath, relativePath });
-        setStatus(`폴더 생성: ${relativePath}`);
-        await refreshTree();
-      } catch (error) {
-        const message =
-          typeof error === "string"
-            ? error
-            : error instanceof Error
-              ? error.message
-              : JSON.stringify(error);
-        setStatus(`폴더 생성 실패: ${message}`);
-      }
-    },
-    [refreshTree, rootPath],
-  );
-
-  const handleRenamePath = useCallback(
-    async (payload: string) => {
-      if (!rootPath) return;
-      const [from, to] = payload.split("::");
-      if (!from || !to) return;
-      try {
-        await invoke("rename_path", { rootPath, from, to });
-        setStatus(`이름 변경: ${from} → ${to}`);
-        await refreshTree();
-      } catch (error) {
-        const message =
-          typeof error === "string"
-            ? error
-            : error instanceof Error
-              ? error.message
-              : JSON.stringify(error);
-        setStatus(`이름 변경 실패: ${message}`);
-      }
-    },
-    [refreshTree, rootPath],
-  );
-
-  const handleDeletePath = useCallback(
-    async (relativePath: string) => {
-      if (!rootPath) return;
-      const confirmed = window.confirm(`삭제할까요? ${relativePath}`);
-      if (!confirmed) return;
-      try {
-        await invoke("delete_path", { rootPath, relativePath });
-        setStatus(`삭제 완료: ${relativePath}`);
-        await refreshTree();
-      } catch (error) {
-        const message =
-          typeof error === "string"
-            ? error
-            : error instanceof Error
-              ? error.message
-              : JSON.stringify(error);
-        setStatus(`삭제 실패: ${message}`);
-      }
-    },
-    [refreshTree, rootPath],
-  );
-
   return (
     <div className="min-h-screen bg-white font-sans text-zinc-900">
       <Topbar
@@ -351,11 +255,7 @@ function AppContent() {
         onSave={handleSave}
         onToggleAi={handleToggleAi}
         onToggleLeft={handleToggleLeft}
-        onSaveApiKey={(value) => {
-          setApiKey(value);
-          localStorage.setItem("openai_api_key", value);
-          setStatus("API 키가 저장되었습니다.");
-        }}
+        onSaveApiKey={handleSaveApiKey}
       />
 
       <main className="grid flex-1 grid-cols-[auto_minmax(0,1fr)_auto] gap-4 px-5 py-6 max-xl:grid-cols-1">
@@ -370,13 +270,13 @@ function AppContent() {
             rootPath={rootPath}
             tree={tree}
             selectedPath={selectedPath}
-            onOpenFolder={handleOpenFolder}
-            onSelectFile={handleSelectFile}
+            onOpenFolder={openFolder}
+            onSelectFile={selectPath}
             onOpenFile={openMarkdownFile}
-            onCreateFile={handleCreateFile}
-            onCreateFolder={handleCreateFolder}
-            onRenamePath={handleRenamePath}
-            onDeletePath={handleDeletePath}
+            onCreateFile={createFile}
+            onCreateFolder={createFolder}
+            onRenamePath={renamePath}
+            onDeletePath={deletePath}
           />
         </aside>
 

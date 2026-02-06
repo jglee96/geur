@@ -1,5 +1,5 @@
 use crate::config::resolve_api_key;
-use crate::fs_tree::{build_tree, resolve_root, resolve_within_root, FileNode};
+use crate::fs_tree::{build_tree, ensure_not_root, resolve_root, resolve_within_root, FileNode};
 use crate::infra_openai::OpenAiClient;
 use std::fs;
 
@@ -32,6 +32,7 @@ pub async fn list_tree(root_path: String) -> Result<FileNode, String> {
 #[tauri::command]
 pub async fn create_file(root_path: String, relative_path: String) -> Result<(), String> {
     let root = resolve_root(&root_path)?;
+    ensure_not_root(&relative_path)?;
     let target = resolve_within_root(&root, &relative_path)?;
     if let Some(parent) = target.parent() {
         fs::create_dir_all(parent).map_err(|err| err.to_string())?;
@@ -43,6 +44,7 @@ pub async fn create_file(root_path: String, relative_path: String) -> Result<(),
 #[tauri::command]
 pub async fn create_folder(root_path: String, relative_path: String) -> Result<(), String> {
     let root = resolve_root(&root_path)?;
+    ensure_not_root(&relative_path)?;
     let target = resolve_within_root(&root, &relative_path)?;
     fs::create_dir_all(&target).map_err(|err| err.to_string())?;
     Ok(())
@@ -51,6 +53,7 @@ pub async fn create_folder(root_path: String, relative_path: String) -> Result<(
 #[tauri::command]
 pub async fn delete_path(root_path: String, relative_path: String) -> Result<(), String> {
     let root = resolve_root(&root_path)?;
+    ensure_not_root(&relative_path)?;
     let target = resolve_within_root(&root, &relative_path)?;
     if target.is_dir() {
         fs::remove_dir_all(&target).map_err(|err| err.to_string())?;
@@ -69,6 +72,8 @@ pub async fn rename_path(
     to: String,
 ) -> Result<(), String> {
     let root = resolve_root(&root_path)?;
+    ensure_not_root(&from)?;
+    ensure_not_root(&to)?;
     let source = resolve_within_root(&root, &from)?;
     let target = resolve_within_root(&root, &to)?;
     fs::rename(&source, &target).map_err(|err| err.to_string())?;
