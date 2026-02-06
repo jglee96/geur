@@ -264,7 +264,7 @@ function AppContent() {
             isLeftOpen
               ? "w-64 border border-zinc-200 bg-white px-4 py-4 opacity-100 max-xl:w-full"
               : "w-0 border-0 px-0 opacity-0 max-xl:hidden"
-          } rounded-xl transition-[width,opacity,transform] duration-200 ease-in-out`}
+          } sticky top-4 h-[calc(100vh-120px)] self-start overflow-auto rounded-xl transition-[width,opacity,transform] duration-200 ease-in-out`}
         >
           <FileTreePanel
             rootPath={rootPath}
@@ -299,7 +299,7 @@ function AppContent() {
             isAiOpen
               ? "w-72 border border-zinc-200 bg-white px-4 py-4 opacity-100 max-xl:w-full"
               : "w-0 border-0 px-0 opacity-0 max-xl:hidden"
-          } rounded-xl transition-[width,opacity,transform] duration-200 ease-in-out`}
+          } sticky top-4 h-[calc(100vh-120px)] self-start overflow-auto rounded-xl transition-[width,opacity,transform] duration-200 ease-in-out`}
         >
           {isAiOpen ? (
             <AiPanel
