@@ -238,14 +238,14 @@ function AppContent() {
       const content = await readTextFile(fullPath);
       setDocText(content);
       setFilePath(fullPath);
-      setSelectedPath(relativePath);
+      selectPath(relativePath);
       setStatus(`열기 완료: ${fullPath}`);
     },
-    [push, rootPath],
+    [push, rootPath, selectPath],
   );
 
   return (
-    <div className="min-h-screen bg-white font-sans text-zinc-900">
+    <div className="flex h-screen flex-col overflow-hidden bg-white font-sans text-zinc-900">
       <Topbar
         filePath={filePath}
         isAiOpen={isAiOpen}
@@ -258,13 +258,13 @@ function AppContent() {
         onSaveApiKey={handleSaveApiKey}
       />
 
-      <main className="grid flex-1 grid-cols-[auto_minmax(0,1fr)_auto] gap-4 px-5 py-6 max-xl:grid-cols-1">
+      <main className="grid min-h-0 flex-1 grid-cols-[auto_minmax(0,1fr)_auto] items-stretch gap-4 overflow-hidden px-5 py-6 max-xl:grid-cols-1 max-xl:overflow-y-auto">
         <aside
           className={`${
             isLeftOpen
               ? "w-64 border border-zinc-200 bg-white px-4 py-4 opacity-100 max-xl:w-full"
               : "w-0 border-0 px-0 opacity-0 max-xl:hidden"
-          } sticky top-4 h-[calc(100vh-120px)] self-start overflow-auto rounded-xl transition-[width,opacity,transform] duration-200 ease-in-out`}
+          } min-h-0 self-stretch overflow-y-auto rounded-xl transition-[width,opacity,transform] duration-200 ease-in-out`}
         >
           <FileTreePanel
             rootPath={rootPath}
@@ -280,7 +280,7 @@ function AppContent() {
           />
         </aside>
 
-        <section className="flex min-w-0 justify-center">
+        <section className="flex min-h-0 min-w-0 self-stretch justify-center overflow-y-auto">
           <EditorPanel
             docText={docText}
             selection={selection}
@@ -299,7 +299,7 @@ function AppContent() {
             isAiOpen
               ? "w-72 border border-zinc-200 bg-white px-4 py-4 opacity-100 max-xl:w-full"
               : "w-0 border-0 px-0 opacity-0 max-xl:hidden"
-          } sticky top-4 h-[calc(100vh-120px)] self-start overflow-auto rounded-xl transition-[width,opacity,transform] duration-200 ease-in-out`}
+          } min-h-0 self-stretch overflow-y-auto rounded-xl transition-[width,opacity,transform] duration-200 ease-in-out`}
         >
           {isAiOpen ? (
             <AiPanel
