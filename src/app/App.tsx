@@ -66,16 +66,18 @@ function AppContent() {
 
   const previewExtension = useMemo(() => {
     if (!pendingChange) return null;
-    const diffHtml = buildDiffHtml(
-      pendingChange.originalText,
-      pendingChange.suggestedText,
-    );
-    const decoration = Decoration.replace({
+    const diffHtml = buildDiffHtml("", pendingChange.suggestedText);
+    const removedMark = Decoration.mark({
+      class:
+        "rounded-sm bg-rose-500/12 text-foreground/90 line-through decoration-1",
+    }).range(pendingChange.from, pendingChange.to);
+    const insertedWidget = Decoration.widget({
       widget: new DiffWidget(diffHtml),
-      inclusive: false,
-    });
+      block: true,
+      side: 1,
+    }).range(pendingChange.to);
     return EditorView.decorations.of(
-      Decoration.set([decoration.range(pendingChange.from, pendingChange.to)]),
+      Decoration.set([removedMark, insertedWidget], true),
     );
   }, [pendingChange]);
 
@@ -170,6 +172,13 @@ function AppContent() {
         originalText: selection.text,
         suggestedText: suggestion,
       });
+      // Keep diff preview visible, but clear active selection highlight
+      // so the editor doesn't paint a large blue selection block.
+      if (editorRef.current) {
+        editorRef.current.dispatch({
+          selection: { anchor: selection.to },
+        });
+      }
       setStatus("수정안 준비 완료. 적용하거나 되돌릴 수 있어요.");
     } catch (error) {
       console.error(error);

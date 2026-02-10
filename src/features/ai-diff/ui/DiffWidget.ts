@@ -9,8 +9,9 @@ export class DiffWidget extends WidgetType {
   }
 
   toDOM() {
-    const container = document.createElement("span");
-    container.className = "whitespace-pre-wrap font-mono text-sm leading-7";
+    const container = document.createElement("div");
+    container.className = "ai-diff-widget my-1";
+    container.setAttribute("data-ai-diff-widget", "true");
     container.innerHTML = this.html;
     return container;
   }

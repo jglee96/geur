@@ -52,20 +52,53 @@ export const EditorPanel = memo(function EditorPanel({
       setFloatingStyle((prev) => ({ ...prev, visible: false }));
       return;
     }
-    const coords = view.coordsAtPos(pendingChange.to);
-    const containerRect = containerRef.current.getBoundingClientRect();
-    if (!coords) {
-      setFloatingStyle((prev) => ({ ...prev, visible: false }));
-      return;
-    }
-    const rawLeft = coords.left - containerRect.left;
-    const rawTop = coords.bottom - containerRect.top + 6;
-    const maxLeft = containerRect.width - 180;
-    setFloatingStyle({
-      left: Math.max(8, Math.min(rawLeft, maxLeft)),
-      top: Math.max(8, rawTop),
-      visible: true,
-    });
+    let frameId = 0;
+
+    const placeBelowDiff = () => {
+      if (!containerRef.current) return;
+      const containerRect = containerRef.current.getBoundingClientRect();
+      const diffWidgets = containerRef.current.querySelectorAll(
+        "[data-ai-diff-widget='true']",
+      ) as NodeListOf<HTMLElement>;
+      const diffWidget =
+        diffWidgets.length > 0 ? diffWidgets[diffWidgets.length - 1] : null;
+
+      if (diffWidget) {
+        const widgetRect = diffWidget.getBoundingClientRect();
+        const rawTop = widgetRect.top - containerRect.top + widgetRect.height + 8;
+        const rawLeft = widgetRect.right - containerRect.left - 168;
+        const maxLeft = containerRect.width - 176;
+        setFloatingStyle({
+          left: Math.max(8, Math.min(rawLeft, maxLeft)),
+          top: Math.max(8, rawTop),
+          visible: true,
+        });
+        return;
+      }
+
+      const coords = view.coordsAtPos(pendingChange.to);
+      if (!coords) {
+        setFloatingStyle((prev) => ({ ...prev, visible: false }));
+        return;
+      }
+      const rawLeft = coords.left - containerRect.left;
+      const rawTop = coords.bottom - containerRect.top + 8;
+      const maxLeft = containerRect.width - 176;
+      setFloatingStyle({
+        left: Math.max(8, Math.min(rawLeft, maxLeft)),
+        top: Math.max(8, rawTop),
+        visible: true,
+      });
+    };
+
+    // Wait one frame so CodeMirror widget layout is finalized.
+    frameId = requestAnimationFrame(placeBelowDiff);
+    const timeoutId = window.setTimeout(placeBelowDiff, 40);
+
+    return () => {
+      cancelAnimationFrame(frameId);
+      window.clearTimeout(timeoutId);
+    };
   }, [pendingChange, view]);
 
   const handleCreateEditor = useCallback(
