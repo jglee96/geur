@@ -88,6 +88,7 @@ function AppContent() {
     const list = [
       markdown(),
       editableExtension,
+      EditorView.lineWrapping,
       keymap.of([
         {
           key: "Mod-l",
