@@ -12,7 +12,7 @@ export function buildDiffHtml(originalText: string, suggestedText: string) {
       if (part.removed) {
         return `<span class="rounded bg-rose-200/50 px-0.5 text-rose-700 line-through">${safe}</span>`;
       }
-      return `<span class="text-zinc-800">${safe}</span>`;
+      return `<span class="text-foreground">${safe}</span>`;
     })
     .join("");
 }

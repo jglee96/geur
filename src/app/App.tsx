@@ -12,10 +12,11 @@ import { DEFAULT_DOC, MODEL_OPTIONS } from "@/shared/config";
 import { SelectionState, PendingChange } from "@/shared/model";
 import { buildDiffHtml, DiffWidget } from "@/features/ai-diff";
 import { useFileTree } from "@/features/file-tree";
+import { useThemeMode } from "@/features/theme";
+import { getDocumentTitle } from "@/entities/document";
 import { Toaster, ToastProviderInternal, useToast } from "@/shared/ui";
 
 const DEFAULT_SELECTION: SelectionState = { from: 0, to: 0, text: "" };
-type ThemeMode = "light" | "dark" | "system";
 
 function AppContent() {
   const editorRef = useRef<EditorView | null>(null);
@@ -30,12 +31,7 @@ function AppContent() {
   const [isLeftOpen, setIsLeftOpen] = useState(true);
   const [modelId, setModelId] = useState(MODEL_OPTIONS[0]?.id ?? "gpt-4o-mini");
   const [apiKey, setApiKey] = useState("");
-  const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
-    const stored = localStorage.getItem("theme_mode");
-    return stored === "light" || stored === "dark" || stored === "system"
-      ? stored
-      : "system";
-  });
+  const { themeMode, setThemeMode } = useThemeMode();
   const { push } = useToast();
   const {
     rootPath,
@@ -56,37 +52,8 @@ function AppContent() {
     }
   }, []);
 
-  useEffect(() => {
-    const root = document.documentElement;
-    const media = window.matchMedia("(prefers-color-scheme: dark)");
-    const applyTheme = () => {
-      const isDark =
-        themeMode === "dark" || (themeMode === "system" && media.matches);
-      root.classList.toggle("dark", isDark);
-      root.style.colorScheme = isDark ? "dark" : "light";
-    };
-
-    applyTheme();
-    localStorage.setItem("theme_mode", themeMode);
-
-    if (themeMode !== "system") return;
-    const listener = () => applyTheme();
-    media.addEventListener("change", listener);
-    return () => media.removeEventListener("change", listener);
-  }, [themeMode]);
-
   const docTitle = useMemo(() => {
-    const heading = docText
-      .split("\n")
-      .find((line) => line.trim().startsWith("# "))
-      ?.replace(/^#\s+/, "")
-      .trim();
-    if (heading) return heading;
-    if (filePath) {
-      const fileName = filePath.split("/").pop() ?? "";
-      return fileName.replace(/\.(md|markdown|mdx)$/i, "");
-    }
-    return "새 문서";
+    return getDocumentTitle(docText, filePath);
   }, [docText, filePath]);
 
   const handleToggleAi = useCallback(() => {
@@ -298,7 +265,7 @@ function AppContent() {
         onToggleAi={handleToggleAi}
         onToggleLeft={handleToggleLeft}
         onSaveApiKey={handleSaveApiKey}
-        onThemeModeChange={(value) => setThemeMode(value as ThemeMode)}
+        onThemeModeChange={setThemeMode}
       />
 
       <main className="grid min-h-0 flex-1 grid-cols-[auto_minmax(0,1fr)_auto] items-stretch overflow-hidden max-xl:grid-cols-1 max-xl:overflow-y-auto">
@@ -359,7 +326,7 @@ function AppContent() {
               onUndoChange={undoChange}
             />
           ) : (
-            <div className="px-2 py-2 text-xs text-zinc-400">
+            <div className="px-2 py-2 text-xs text-muted-foreground">
               AI 패널 닫힘
             </div>
           )}
