@@ -133,6 +133,25 @@
     padding: 0;
   }
 
+  .cm-editor .cm-selectionBackground,
+  .cm-editor.cm-focused .cm-selectionBackground {
+    background: color-mix(in oklab, hsl(var(--primary)) 32%, transparent) !important;
+  }
+
+  .cm-editor .cm-content ::selection {
+    background: color-mix(in oklab, hsl(var(--primary)) 32%, transparent);
+  }
+
+  .dark .cm-editor .cm-selectionBackground,
+  .dark .cm-editor.cm-focused .cm-selectionBackground {
+    background: color-mix(in oklab, hsl(var(--primary)) 42%, transparent) !important;
+  }
+
+  .dark .cm-editor .cm-content ::selection {
+    background: color-mix(in oklab, hsl(var(--primary)) 42%, transparent);
+    color: hsl(var(--foreground));
+  }
+
   .cm-header-1 {
     @apply mt-[1.45rem] mb-[0.62rem] text-[2.08rem] font-bold leading-[1.2] tracking-[-0.012em];
   }

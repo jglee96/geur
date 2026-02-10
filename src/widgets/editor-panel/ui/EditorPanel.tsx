@@ -1,4 +1,12 @@
-import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  memo,
+  useCallback,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import CodeMirror from "@uiw/react-codemirror";
 import { ViewUpdate, EditorView } from "@codemirror/view";
 import type { Extension } from "@codemirror/state";
@@ -31,7 +39,12 @@ export const EditorPanel = memo(function EditorPanel({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [view, setView] = useState<EditorView | null>(null);
   const basicSetup = useMemo(
-    () => ({ lineNumbers: false, foldGutter: false }),
+    () => ({
+      lineNumbers: false,
+      foldGutter: false,
+      highlightActiveLine: false,
+      highlightActiveLineGutter: false,
+    }),
     [],
   );
   const [floatingStyle, setFloatingStyle] = useState<{
@@ -39,13 +52,14 @@ export const EditorPanel = memo(function EditorPanel({
     top: number;
     visible: boolean;
   }>({ left: 0, top: 0, visible: false });
+  const deferredDocText = useDeferredValue(docText);
   const wordCount = useMemo(() => {
-    const words = docText
+    const words = deferredDocText
       .trim()
       .split(/\s+/)
       .filter(Boolean);
     return words.length;
-  }, [docText]);
+  }, [deferredDocText]);
 
   useEffect(() => {
     if (!pendingChange || !view || !containerRef.current) {
@@ -116,9 +130,7 @@ export const EditorPanel = memo(function EditorPanel({
       }
       if (update.selectionSet) {
         const { from, to } = update.state.selection.main;
-        const selectedText =
-          from === to ? "" : update.state.sliceDoc(from, to);
-        onSelectionChange({ from, to, text: selectedText });
+        onSelectionChange({ from, to, text: "" });
       }
     },
     [onDocChange, onSelectionChange],
@@ -132,7 +144,7 @@ export const EditorPanel = memo(function EditorPanel({
         </div>
         <div className="flex items-center gap-3">
           <span>단어 {wordCount}</span>
-          <span>선택 {selection.text.length}자</span>
+          <span>선택 {Math.max(0, selection.to - selection.from)}자</span>
         </div>
       </div>
       <div className="mx-auto w-full max-w-[760px] px-1 py-4 sm:px-3 sm:py-6">

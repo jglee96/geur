@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import { Decoration, EditorView, keymap } from "@codemirror/view";
 import { markdown } from "@codemirror/lang-markdown";
 import { invoke } from "@tauri-apps/api/core";
@@ -10,7 +17,6 @@ import { AiPanel } from "@/widgets/ai-panel";
 import { Topbar } from "@/widgets/topbar";
 import { DEFAULT_DOC, MODEL_OPTIONS } from "@/shared/config";
 import { SelectionState, PendingChange } from "@/shared/model";
-import { buildDiffHtml, DiffWidget } from "@/features/ai-diff";
 import { useFileTree } from "@/features/file-tree";
 import { useThemeMode } from "@/features/theme";
 import { getDocumentTitle } from "@/entities/document";
@@ -20,8 +26,10 @@ const DEFAULT_SELECTION: SelectionState = { from: 0, to: 0, text: "" };
 
 function AppContent() {
   const editorRef = useRef<EditorView | null>(null);
+  const selectionRef = useRef<SelectionState>(DEFAULT_SELECTION);
   const [docText, setDocText] = useState(DEFAULT_DOC);
   const [selection, setSelection] = useState<SelectionState>(DEFAULT_SELECTION);
+  const [, startSelectionTransition] = useTransition();
   const [userPrompt, setUserPrompt] = useState("더 명확하고 간결하게 다듬어줘.");
   const [pendingChange, setPendingChange] = useState<PendingChange | null>(null);
   const [isBusy, setIsBusy] = useState(false);
@@ -66,19 +74,11 @@ function AppContent() {
 
   const previewExtension = useMemo(() => {
     if (!pendingChange) return null;
-    const diffHtml = buildDiffHtml("", pendingChange.suggestedText);
     const removedMark = Decoration.mark({
       class:
         "rounded-sm bg-rose-500/12 text-foreground/90 line-through decoration-1",
     }).range(pendingChange.from, pendingChange.to);
-    const insertedWidget = Decoration.widget({
-      widget: new DiffWidget(diffHtml),
-      block: true,
-      side: 1,
-    }).range(pendingChange.to);
-    return EditorView.decorations.of(
-      Decoration.set([removedMark, insertedWidget], true),
-    );
+    return EditorView.decorations.of(Decoration.set([removedMark], true));
   }, [pendingChange]);
 
   const editableExtension = useMemo(
@@ -145,7 +145,8 @@ function AppContent() {
 
   const requestChange = useCallback(async () => {
     if (isBusy || pendingChange) return;
-    if (!selection.text || selection.from === selection.to) {
+    const activeSelection = selectionRef.current;
+    if (activeSelection.from === activeSelection.to) {
       setStatus("선택된 텍스트가 없어요.");
       return;
     }
@@ -159,24 +160,31 @@ function AppContent() {
         setIsBusy(false);
         return;
       }
+      const selectedText =
+        editorRef.current?.state.sliceDoc(
+          activeSelection.from,
+          activeSelection.to,
+        ) ??
+        docText.slice(activeSelection.from, activeSelection.to);
+
       const suggestion = await invoke<string>("rewrite_text", {
         model: modelId,
         prompt: userPrompt,
-        selectedText: selection.text,
+        selectedText,
         apiKey,
       });
 
       setPendingChange({
-        from: selection.from,
-        to: selection.to,
-        originalText: selection.text,
+        from: activeSelection.from,
+        to: activeSelection.to,
+        originalText: selectedText,
         suggestedText: suggestion,
       });
       // Keep diff preview visible, but clear active selection highlight
       // so the editor doesn't paint a large blue selection block.
       if (editorRef.current) {
         editorRef.current.dispatch({
-          selection: { anchor: selection.to },
+          selection: { anchor: activeSelection.to },
         });
       }
       setStatus("수정안 준비 완료. 적용하거나 되돌릴 수 있어요.");
@@ -192,7 +200,7 @@ function AppContent() {
     } finally {
       setIsBusy(false);
     }
-  }, [apiKey, isBusy, modelId, pendingChange, selection, userPrompt]);
+  }, [apiKey, docText, isBusy, modelId, pendingChange, userPrompt]);
 
   const acceptChange = useCallback(() => {
     if (!pendingChange) return;
@@ -230,8 +238,16 @@ function AppContent() {
   }, []);
 
   const handleSelectionChange = useCallback((nextSelection: SelectionState) => {
-    setSelection(nextSelection);
-  }, []);
+    selectionRef.current = nextSelection;
+    startSelectionTransition(() => {
+      setSelection((prev) => {
+        if (prev.from === nextSelection.from && prev.to === nextSelection.to) {
+          return prev;
+        }
+        return nextSelection;
+      });
+    });
+  }, [startSelectionTransition]);
 
   const handleSaveApiKey = useCallback((value: string) => {
     setApiKey(value);
