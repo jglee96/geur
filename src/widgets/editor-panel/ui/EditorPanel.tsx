@@ -39,6 +39,13 @@ export const EditorPanel = memo(function EditorPanel({
     top: number;
     visible: boolean;
   }>({ left: 0, top: 0, visible: false });
+  const wordCount = useMemo(() => {
+    const words = docText
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean);
+    return words.length;
+  }, [docText]);
 
   useEffect(() => {
     if (!pendingChange || !view || !containerRef.current) {
@@ -86,8 +93,14 @@ export const EditorPanel = memo(function EditorPanel({
 
   return (
     <div className="flex w-full max-w-[1080px] flex-col gap-2">
-      <div className="text-right text-[11px] text-muted-foreground">
-        선택: {selection.text.length}자
+      <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+        <div className="rounded-md bg-muted px-2 py-1">
+          선택 후 `Ctrl/Cmd + L` 또는 오른쪽에서 AI 요청
+        </div>
+        <div className="flex items-center gap-3">
+          <span>단어 {wordCount}</span>
+          <span>선택 {selection.text.length}자</span>
+        </div>
       </div>
       <div className="mx-auto w-full max-w-[760px] px-1 py-4 sm:px-3 sm:py-6">
         <div ref={containerRef} className="relative">

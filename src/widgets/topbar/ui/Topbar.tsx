@@ -18,6 +18,7 @@ import {
 } from "@/shared/ui";
 
 type TopbarProps = {
+  docTitle: string;
   filePath: string;
   isAiOpen: boolean;
   isLeftOpen: boolean;
@@ -32,6 +33,7 @@ type TopbarProps = {
 };
 
 export const Topbar = memo(function Topbar({
+  docTitle,
   filePath,
   isAiOpen,
   isLeftOpen,
@@ -133,8 +135,11 @@ export const Topbar = memo(function Topbar({
             </SelectContent>
           </Select>
         </div>
-        <div className="max-w-[42vw] truncate text-xs text-muted-foreground">
-          {filePath ? filePath : "새 문서"}
+        <div className="max-w-[42vw] truncate">
+          <div className="truncate text-xs font-medium text-foreground">{docTitle}</div>
+          <div className="truncate text-[10px] text-muted-foreground">
+            {filePath ? filePath : "아직 저장되지 않음"}
+          </div>
         </div>
       </div>
     </header>

@@ -62,6 +62,11 @@ export const AiPanel = memo(function AiPanel({
 
       <section className="space-y-3">
         <div className="text-[11px] font-semibold tracking-wide text-muted-foreground">수정 요청</div>
+        <div className="rounded-lg bg-muted px-2.5 py-2 text-[11px] text-muted-foreground">
+          1) 문장에서 고칠 부분을 먼저 선택하세요.
+          <br />
+          2) 요청을 짧게 쓰고 AI 수정을 누르세요.
+        </div>
         <div className="space-y-3">
           <Textarea
             value={userPrompt}
@@ -74,7 +79,7 @@ export const AiPanel = memo(function AiPanel({
             onClick={onRequestChange}
             disabled={isBusy || !!pendingChange}
           >
-            AI 수정 요청
+            선택 영역 AI 수정
           </Button>
         </div>
       </section>

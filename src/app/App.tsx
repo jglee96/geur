@@ -75,6 +75,20 @@ function AppContent() {
     return () => media.removeEventListener("change", listener);
   }, [themeMode]);
 
+  const docTitle = useMemo(() => {
+    const heading = docText
+      .split("\n")
+      .find((line) => line.trim().startsWith("# "))
+      ?.replace(/^#\s+/, "")
+      .trim();
+    if (heading) return heading;
+    if (filePath) {
+      const fileName = filePath.split("/").pop() ?? "";
+      return fileName.replace(/\.(md|markdown|mdx)$/i, "");
+    }
+    return "새 문서";
+  }, [docText, filePath]);
+
   const handleToggleAi = useCallback(() => {
     setIsAiOpen((prev) => !prev);
   }, []);
@@ -273,6 +287,7 @@ function AppContent() {
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-background text-foreground">
       <Topbar
+        docTitle={docTitle}
         filePath={filePath}
         isAiOpen={isAiOpen}
         isLeftOpen={isLeftOpen}
