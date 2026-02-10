@@ -21,6 +21,7 @@ function TreeItem({
   node,
   level,
   expanded,
+  selectedPath,
   toggle,
   onSelectFile,
   onOpenFile,
@@ -30,6 +31,7 @@ function TreeItem({
   node: FileNode;
   level: number;
   expanded: Set<string>;
+  selectedPath: string;
   toggle: (path: string) => void;
   onSelectFile: (path: string) => void;
   onOpenFile: (path: string) => void;
@@ -38,11 +40,12 @@ function TreeItem({
 }) {
   const hasChildren = node.isDir && node.children && node.children.length > 0;
   const isOpen = expanded.has(node.path);
+  const isSelected = !node.isDir && selectedPath === node.path;
 
   return (
     <div>
       <div
-        className="flex items-center gap-1 py-0.5 text-xs text-foreground"
+        className="flex items-center gap-1 rounded-[8px] py-0.5 text-xs text-foreground hover:bg-accent/70"
         style={{ paddingLeft: level * INDENT }}
       >
         {node.isDir ? (
@@ -62,7 +65,11 @@ function TreeItem({
           onDoubleClick={() =>
             node.isDir ? toggle(node.path) : onOpenFile(node.path)
           }
-          className="flex-1 truncate text-left hover:text-foreground"
+          className={`flex-1 truncate rounded-[6px] px-1.5 py-0.5 text-left ${
+            isSelected
+              ? "bg-primary/12 text-foreground"
+              : "text-foreground/90 hover:text-foreground"
+          }`}
         >
           {node.name}
         </button>
@@ -89,6 +96,7 @@ function TreeItem({
               node={child}
               level={level + 1}
               expanded={expanded}
+              selectedPath={selectedPath}
               toggle={toggle}
               onSelectFile={onSelectFile}
               onOpenFile={onOpenFile}
@@ -155,15 +163,15 @@ export function FileTreePanel({
 
   return (
     <div className="flex h-full flex-col gap-3">
-      <div className="text-xs font-semibold text-muted-foreground">로컬 폴더</div>
+      <div className="px-1 text-[11px] font-semibold tracking-wide text-zinc-500">로컬 폴더</div>
       <div className="flex items-center gap-2">
-        <Button size="sm" variant="outline" onClick={onOpenFolder}>
+        <Button size="sm" variant="outline" className="h-7" onClick={onOpenFolder}>
           폴더 열기
         </Button>
-        <Button size="sm" variant="outline" onClick={() => handleCreate("folder")}>
+        <Button size="sm" variant="ghost" className="h-7" onClick={() => handleCreate("folder")}>
           새 폴더
         </Button>
-        <Button size="sm" variant="outline" onClick={() => handleCreate("file")}>
+        <Button size="sm" variant="ghost" className="h-7" onClick={() => handleCreate("file")}>
           새 파일
         </Button>
       </div>
@@ -173,22 +181,23 @@ export function FileTreePanel({
         className="h-8 text-xs"
       />
       <Separator />
-      <div className="min-h-0 flex-1 overflow-auto">
+      <div className="min-h-0 flex-1 overflow-auto rounded-lg bg-white/60 p-1.5">
         {treeRoot ? (
           <div className="space-y-0.5">
-          <TreeItem
-            node={treeRoot}
-            level={0}
-            expanded={expanded}
-            toggle={toggle}
-            onSelectFile={onSelectFile}
-            onOpenFile={onOpenFile}
-            onRenamePath={handleRename}
-            onDeletePath={onDeletePath}
-          />
+            <TreeItem
+              node={treeRoot}
+              level={0}
+              expanded={expanded}
+              selectedPath={selectedPath}
+              toggle={toggle}
+              onSelectFile={onSelectFile}
+              onOpenFile={onOpenFile}
+              onRenamePath={handleRename}
+              onDeletePath={onDeletePath}
+            />
           </div>
         ) : (
-          <div className="rounded-md border border-dashed border-border bg-muted p-3 text-xs text-muted-foreground">
+          <div className="rounded-lg border border-dashed border-zinc-300 bg-white/80 p-3 text-xs text-zinc-500">
             폴더를 선택하면 파일 트리를 보여줄게요.
           </div>
         )}

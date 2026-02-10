@@ -10,10 +10,6 @@ import {
   DialogTrigger,
   Input,
   Separator,
-  Switch,
-  Tabs,
-  TabsList,
-  TabsTrigger,
 } from "@/shared/ui";
 
 type TopbarProps = {
@@ -44,40 +40,38 @@ export const Topbar = memo(function Topbar({
   React.useEffect(() => {
     setDraftKey(apiKey);
   }, [apiKey]);
+
   return (
-    <header className="border-b bg-background">
-      <div className="flex flex-wrap items-center gap-4 px-6 py-3">
-        <Tabs defaultValue="home">
-          <TabsList>
-            <TabsTrigger value="home">홈</TabsTrigger>
-            <TabsTrigger value="insert">삽입</TabsTrigger>
-            <TabsTrigger value="view">보기</TabsTrigger>
-          </TabsList>
-        </Tabs>
-        <div className="ml-auto text-xs text-muted-foreground">
-          {filePath ? filePath : "새 문서"}
+    <header className="border-b border-black/10 bg-white/75 backdrop-blur-xl">
+      <div className="flex h-12 items-center gap-2 px-4">
+        <div className="inline-flex items-center rounded-lg bg-zinc-100 p-1">
+          <Button
+            size="sm"
+            variant={isLeftOpen ? "default" : "ghost"}
+            className="h-7"
+            onClick={onToggleLeft}
+          >
+            폴더
+          </Button>
+          <Button
+            size="sm"
+            variant={isAiOpen ? "default" : "ghost"}
+            className="h-7"
+            onClick={onToggleAi}
+          >
+            AI
+          </Button>
         </div>
-      </div>
-      <Separator />
-      <div className="flex flex-wrap items-center gap-4 px-6 py-3 text-xs text-muted-foreground">
-        <div className="flex items-center gap-2">
-          폴더
-          <Switch checked={isLeftOpen} onCheckedChange={onToggleLeft} />
-        </div>
-        <div className="flex items-center gap-2">
-          AI 패널
-          <Switch checked={isAiOpen} onCheckedChange={onToggleAi} />
-        </div>
-        <Separator orientation="vertical" className="h-5" />
-        <Button size="sm" variant="outline" onClick={onOpen}>
+        <Separator orientation="vertical" className="mx-1 h-5" />
+        <Button size="sm" variant="ghost" className="h-7" onClick={onOpen}>
           열기
         </Button>
-        <Button size="sm" onClick={onSave}>
+        <Button size="sm" className="h-7" onClick={onSave}>
           저장
         </Button>
         <Dialog>
           <DialogTrigger asChild>
-            <Button size="sm" variant="ghost">
+            <Button size="sm" variant="ghost" className="h-7">
               설정
             </Button>
           </DialogTrigger>
@@ -113,6 +107,9 @@ export const Topbar = memo(function Topbar({
             </div>
           </DialogContent>
         </Dialog>
+        <div className="ml-auto max-w-[48vw] truncate text-xs text-zinc-500">
+          {filePath ? filePath : "새 문서"}
+        </div>
       </div>
     </header>
   );

@@ -3,7 +3,7 @@ import CodeMirror from "@uiw/react-codemirror";
 import { ViewUpdate, EditorView } from "@codemirror/view";
 import type { Extension } from "@codemirror/state";
 import { PendingChange, SelectionState } from "@/shared/model";
-import { Button, Card, CardContent, CardHeader } from "@/shared/ui";
+import { Button } from "@/shared/ui";
 
 type EditorPanelProps = {
   docText: string;
@@ -86,52 +86,48 @@ export const EditorPanel = memo(function EditorPanel({
 
   return (
     <div className="flex w-full max-w-[900px] flex-col gap-2">
-      <div className="text-right text-xs text-muted-foreground">
+      <div className="text-right text-xs text-zinc-500">
         선택 길이: {selection.text.length}자
       </div>
-      <Card>
-        <CardHeader className="py-2 text-xs text-muted-foreground">
-          문서
-        </CardHeader>
-        <CardContent>
-          <div ref={containerRef} className="relative">
-            <div className="min-h-[65vh] bg-background">
-              <CodeMirror
-                value={docText}
-                height="100%"
-                className="h-full"
-                basicSetup={basicSetup}
-                extensions={extensions}
-                onCreateEditor={handleCreateEditor}
-                onUpdate={handleUpdate}
-              />
-            </div>
-            {pendingChange && floatingStyle.visible ? (
-              <div
-                className="absolute z-10 flex items-center gap-2 rounded-md border border-border bg-background px-2.5 py-1 text-xs text-muted-foreground shadow-sm"
-                style={{ left: floatingStyle.left, top: floatingStyle.top }}
-              >
-                <span>AI 변경</span>
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={onAcceptChange}
-                >
-                  Keep
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={onUndoChange}
-                >
-                  Undo
-                </Button>
-              </div>
-            ) : null}
+      <div className="relative overflow-hidden rounded-2xl border border-black/10 bg-white shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
+        <div className="border-b border-black/10 px-4 py-2 text-xs text-zinc-500">문서</div>
+        <div ref={containerRef} className="relative px-4 py-3">
+          <div className="min-h-[68vh] bg-transparent">
+            <CodeMirror
+              value={docText}
+              height="100%"
+              className="h-full"
+              basicSetup={basicSetup}
+              extensions={extensions}
+              onCreateEditor={handleCreateEditor}
+              onUpdate={handleUpdate}
+            />
           </div>
-        </CardContent>
-      </Card>
+          {pendingChange && floatingStyle.visible ? (
+            <div
+              className="absolute z-10 flex items-center gap-2 rounded-[10px] border border-zinc-300 bg-white/95 px-2.5 py-1 text-xs text-zinc-600 shadow-[0_8px_24px_rgba(0,0,0,0.14)] backdrop-blur"
+              style={{ left: floatingStyle.left, top: floatingStyle.top }}
+            >
+              <span>AI 변경</span>
+              <Button
+                type="button"
+                size="sm"
+                onClick={onAcceptChange}
+              >
+                Keep
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={onUndoChange}
+              >
+                Undo
+              </Button>
+            </div>
+          ) : null}
+        </div>
+      </div>
     </div>
   );
 });

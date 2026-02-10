@@ -2,9 +2,6 @@ import React, { memo } from "react";
 import { PendingChange } from "@/shared/model";
 import {
   Button,
-  Card,
-  CardContent,
-  CardHeader,
   Select,
   SelectContent,
   SelectItem,
@@ -42,10 +39,10 @@ export const AiPanel = memo(function AiPanel({
   onUndoChange,
 }: AiPanelProps) {
   return (
-    <aside className="flex flex-col gap-4">
-      <Card>
-        <CardHeader className="text-sm font-semibold">모델</CardHeader>
-        <CardContent className="space-y-2">
+    <aside className="flex flex-col gap-4 rounded-lg bg-white/60 p-3">
+      <section className="space-y-2">
+        <div className="text-[11px] font-semibold tracking-wide text-zinc-500">모델</div>
+        <div>
           <Select value={modelId} onValueChange={onModelChange}>
             <SelectTrigger>
               <SelectValue placeholder="모델 선택" />
@@ -58,12 +55,14 @@ export const AiPanel = memo(function AiPanel({
               ))}
             </SelectContent>
           </Select>
-        </CardContent>
-      </Card>
+        </div>
+      </section>
 
-      <Card>
-        <CardHeader className="text-sm font-semibold">수정 요청</CardHeader>
-        <CardContent className="space-y-3">
+      <Separator />
+
+      <section className="space-y-3">
+        <div className="text-[11px] font-semibold tracking-wide text-zinc-500">수정 요청</div>
+        <div className="space-y-3">
           <Textarea
             value={userPrompt}
             onChange={(event) => onUserPromptChange(event.target.value)}
@@ -77,12 +76,14 @@ export const AiPanel = memo(function AiPanel({
           >
             AI 수정 요청
           </Button>
-        </CardContent>
-      </Card>
+        </div>
+      </section>
 
-      <Card>
-        <CardHeader className="text-sm font-semibold">변경 사항</CardHeader>
-        <CardContent>
+      <Separator />
+
+      <section className="space-y-3">
+        <div className="text-[11px] font-semibold tracking-wide text-zinc-500">변경 사항</div>
+        <div className="rounded-lg border border-zinc-200 bg-white/70 p-2.5">
           {pendingChange ? (
             <div className="space-y-3 text-xs text-muted-foreground">
               <div className="font-semibold text-foreground">
@@ -102,12 +103,10 @@ export const AiPanel = memo(function AiPanel({
               선택한 텍스트가 있으면 여기에 변경 사항이 나타납니다.
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </section>
 
-      <Separator />
-
-      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+      <div className="mt-auto flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-2.5 py-2 text-xs text-muted-foreground">
         <span className="h-2 w-2 rounded-full bg-primary" />
         {status}
       </div>

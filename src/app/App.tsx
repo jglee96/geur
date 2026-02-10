@@ -245,7 +245,7 @@ function AppContent() {
   );
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-white font-sans text-zinc-900">
+    <div className="flex h-screen flex-col overflow-hidden bg-[#eef0f3] text-foreground">
       <Topbar
         filePath={filePath}
         isAiOpen={isAiOpen}
@@ -258,13 +258,13 @@ function AppContent() {
         onSaveApiKey={handleSaveApiKey}
       />
 
-      <main className="grid min-h-0 flex-1 grid-cols-[auto_minmax(0,1fr)_auto] items-stretch gap-4 overflow-hidden px-5 py-6 max-xl:grid-cols-1 max-xl:overflow-y-auto">
+      <main className="grid min-h-0 flex-1 grid-cols-[auto_minmax(0,1fr)_auto] items-stretch overflow-hidden max-xl:grid-cols-1 max-xl:overflow-y-auto">
         <aside
           className={`${
             isLeftOpen
-              ? "w-64 border border-zinc-200 bg-white px-4 py-4 opacity-100 max-xl:w-full"
+              ? "w-64 border-r border-black/10 bg-[#f6f7f9] px-3 py-3 opacity-100 max-xl:w-full"
               : "w-0 border-0 px-0 opacity-0 max-xl:hidden"
-          } min-h-0 self-stretch overflow-y-auto rounded-xl transition-[width,opacity,transform] duration-200 ease-in-out`}
+          } min-h-0 self-stretch overflow-y-auto transition-[width,opacity,transform] duration-200 ease-in-out`}
         >
           <FileTreePanel
             rootPath={rootPath}
@@ -280,7 +280,7 @@ function AppContent() {
           />
         </aside>
 
-        <section className="flex min-h-0 min-w-0 self-stretch justify-center overflow-y-auto">
+        <section className="flex min-h-0 min-w-0 self-stretch justify-center overflow-y-auto px-8 py-6">
           <EditorPanel
             docText={docText}
             selection={selection}
@@ -297,9 +297,9 @@ function AppContent() {
         <aside
           className={`${
             isAiOpen
-              ? "w-72 border border-zinc-200 bg-white px-4 py-4 opacity-100 max-xl:w-full"
+              ? "w-72 border-l border-black/10 bg-[#f6f7f9] px-3 py-3 opacity-100 max-xl:w-full"
               : "w-0 border-0 px-0 opacity-0 max-xl:hidden"
-          } min-h-0 self-stretch overflow-y-auto rounded-xl transition-[width,opacity,transform] duration-200 ease-in-out`}
+          } min-h-0 self-stretch overflow-y-auto transition-[width,opacity,transform] duration-200 ease-in-out`}
         >
           {isAiOpen ? (
             <AiPanel
