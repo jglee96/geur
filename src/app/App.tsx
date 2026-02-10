@@ -272,7 +272,7 @@ function AppContent() {
         <aside
           className={`${
             isLeftOpen
-              ? "w-64 border-r border-border bg-muted/30 px-3 py-3 opacity-100 max-xl:w-full"
+              ? "w-72 border-r border-border/80 bg-muted/35 px-2 py-2 opacity-100 backdrop-blur-sm max-xl:w-full"
               : "w-0 border-0 px-0 opacity-0 max-xl:hidden"
           } min-h-0 self-stretch overflow-y-auto transition-[width,opacity,transform] duration-200 ease-in-out`}
         >
@@ -307,7 +307,7 @@ function AppContent() {
         <aside
           className={`${
             isAiOpen
-              ? "w-72 border-l border-border bg-muted/30 px-3 py-3 opacity-100 max-xl:w-full"
+              ? "w-72 border-l border-border/80 bg-muted/35 px-2 py-2 opacity-100 backdrop-blur-sm max-xl:w-full"
               : "w-0 border-0 px-0 opacity-0 max-xl:hidden"
           } min-h-0 self-stretch overflow-y-auto transition-[width,opacity,transform] duration-200 ease-in-out`}
         >

@@ -39,12 +39,14 @@ export const AiPanel = memo(function AiPanel({
   onUndoChange,
 }: AiPanelProps) {
   return (
-    <aside className="flex flex-col gap-4 rounded-lg bg-card/70 p-3">
+    <aside className="flex h-full flex-col gap-3 rounded-xl bg-background/55 p-2.5">
       <section className="space-y-2">
-        <div className="text-[11px] font-semibold tracking-wide text-muted-foreground">모델</div>
+        <div className="px-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+          모델
+        </div>
         <div>
           <Select value={modelId} onValueChange={onModelChange}>
-            <SelectTrigger>
+            <SelectTrigger className="rounded-md bg-background/80">
               <SelectValue placeholder="모델 선택" />
             </SelectTrigger>
             <SelectContent>
@@ -61,8 +63,10 @@ export const AiPanel = memo(function AiPanel({
       <Separator />
 
       <section className="space-y-3">
-        <div className="text-[11px] font-semibold tracking-wide text-muted-foreground">수정 요청</div>
-        <div className="rounded-lg bg-muted px-2.5 py-2 text-[11px] text-muted-foreground">
+        <div className="px-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+          수정 요청
+        </div>
+        <div className="rounded-md bg-muted px-2.5 py-2 text-[11px] text-muted-foreground">
           1) 문장에서 고칠 부분을 먼저 선택하세요.
           <br />
           2) 요청을 짧게 쓰고 AI 수정을 누르세요.
@@ -72,10 +76,10 @@ export const AiPanel = memo(function AiPanel({
             value={userPrompt}
             onChange={(event) => onUserPromptChange(event.target.value)}
             placeholder="선택 영역을 어떻게 바꿀지 적어주세요."
-            className="min-h-[120px]"
+            className="min-h-[120px] rounded-md bg-background/80"
           />
           <Button
-            className="w-full"
+            className="w-full rounded-md"
             onClick={onRequestChange}
             disabled={isBusy || !!pendingChange}
           >
@@ -87,8 +91,10 @@ export const AiPanel = memo(function AiPanel({
       <Separator />
 
       <section className="space-y-3">
-        <div className="text-[11px] font-semibold tracking-wide text-muted-foreground">변경 사항</div>
-        <div className="rounded-lg border border-border bg-background/70 p-2.5">
+        <div className="px-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+          변경 사항
+        </div>
+        <div className="rounded-md border border-border bg-background/70 p-2.5">
           {pendingChange ? (
             <div className="space-y-3 text-xs text-muted-foreground">
               <div className="font-semibold text-foreground">
@@ -111,7 +117,7 @@ export const AiPanel = memo(function AiPanel({
         </div>
       </section>
 
-      <div className="mt-auto flex items-center gap-2 rounded-lg border border-border bg-background px-2.5 py-2 text-xs text-muted-foreground">
+      <div className="mt-auto flex items-center gap-2 rounded-md border border-border bg-background px-2.5 py-2 text-xs text-muted-foreground">
         <span className="h-2 w-2 rounded-full bg-primary" />
         {status}
       </div>
