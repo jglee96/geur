@@ -86,14 +86,14 @@ export const EditorPanel = memo(function EditorPanel({
 
   return (
     <div className="flex w-full max-w-[1080px] flex-col gap-2">
-      <div className="text-right text-[11px] text-zinc-500/90">
+      <div className="text-right text-[11px] text-muted-foreground">
         선택: {selection.text.length}자
       </div>
-      <div className="rounded-2xl bg-white px-8 py-10">
+      <div className="rounded-2xl bg-card px-8 py-10">
         <div className="mx-auto w-full max-w-[760px]">
           <div
             ref={containerRef}
-            className="relative rounded-xl bg-white px-4 py-3 transition"
+            className="relative rounded-xl bg-background px-4 py-3 transition"
           >
             <div className="min-h-[74vh]">
               <CodeMirror
@@ -108,7 +108,7 @@ export const EditorPanel = memo(function EditorPanel({
             </div>
             {pendingChange && floatingStyle.visible ? (
               <div
-                className="absolute z-10 flex items-center gap-2 rounded-xl border border-zinc-300 bg-white/95 px-2.5 py-1.5 text-xs text-zinc-600 shadow-[0_8px_20px_rgba(0,0,0,0.14)] backdrop-blur"
+                className="absolute z-10 flex items-center gap-2 rounded-xl border border-border bg-popover/95 px-2.5 py-1.5 text-xs text-muted-foreground shadow-[0_8px_20px_rgba(0,0,0,0.14)] backdrop-blur"
                 style={{ left: floatingStyle.left, top: floatingStyle.top }}
               >
                 <span>AI 변경</span>

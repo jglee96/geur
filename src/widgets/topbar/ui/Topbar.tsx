@@ -9,6 +9,11 @@ import {
   DialogTitle,
   DialogTrigger,
   Input,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
   Separator,
 } from "@/shared/ui";
 
@@ -17,11 +22,13 @@ type TopbarProps = {
   isAiOpen: boolean;
   isLeftOpen: boolean;
   apiKey: string;
+  themeMode: "light" | "dark" | "system";
   onOpen: () => void;
   onSave: () => void;
   onToggleAi: () => void;
   onToggleLeft: () => void;
   onSaveApiKey: (value: string) => void;
+  onThemeModeChange: (value: "light" | "dark" | "system") => void;
 };
 
 export const Topbar = memo(function Topbar({
@@ -29,11 +36,13 @@ export const Topbar = memo(function Topbar({
   isAiOpen,
   isLeftOpen,
   apiKey,
+  themeMode,
   onOpen,
   onSave,
   onToggleAi,
   onToggleLeft,
   onSaveApiKey,
+  onThemeModeChange,
 }: TopbarProps) {
   const [draftKey, setDraftKey] = React.useState(apiKey);
 
@@ -42,9 +51,9 @@ export const Topbar = memo(function Topbar({
   }, [apiKey]);
 
   return (
-    <header className="border-b border-black/10 bg-white/75 backdrop-blur-xl">
+    <header className="border-b border-border bg-background/80 backdrop-blur-xl">
       <div className="flex h-12 items-center gap-2 px-4">
-        <div className="inline-flex items-center rounded-lg bg-zinc-100 p-1">
+        <div className="inline-flex items-center rounded-lg bg-muted p-1">
           <Button
             size="sm"
             variant={isLeftOpen ? "default" : "ghost"}
@@ -107,7 +116,24 @@ export const Topbar = memo(function Topbar({
             </div>
           </DialogContent>
         </Dialog>
-        <div className="ml-auto max-w-[48vw] truncate text-xs text-zinc-500">
+        <div className="ml-auto w-28">
+          <Select
+            value={themeMode}
+            onValueChange={(value) =>
+              onThemeModeChange(value as "light" | "dark" | "system")
+            }
+          >
+            <SelectTrigger className="h-7 text-xs">
+              <SelectValue placeholder="테마" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="light">라이트</SelectItem>
+              <SelectItem value="dark">다크</SelectItem>
+              <SelectItem value="system">시스템</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="max-w-[42vw] truncate text-xs text-muted-foreground">
           {filePath ? filePath : "새 문서"}
         </div>
       </div>

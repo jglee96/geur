@@ -39,9 +39,9 @@ export const AiPanel = memo(function AiPanel({
   onUndoChange,
 }: AiPanelProps) {
   return (
-    <aside className="flex flex-col gap-4 rounded-lg bg-white/60 p-3">
+    <aside className="flex flex-col gap-4 rounded-lg bg-card/70 p-3">
       <section className="space-y-2">
-        <div className="text-[11px] font-semibold tracking-wide text-zinc-500">모델</div>
+        <div className="text-[11px] font-semibold tracking-wide text-muted-foreground">모델</div>
         <div>
           <Select value={modelId} onValueChange={onModelChange}>
             <SelectTrigger>
@@ -61,7 +61,7 @@ export const AiPanel = memo(function AiPanel({
       <Separator />
 
       <section className="space-y-3">
-        <div className="text-[11px] font-semibold tracking-wide text-zinc-500">수정 요청</div>
+        <div className="text-[11px] font-semibold tracking-wide text-muted-foreground">수정 요청</div>
         <div className="space-y-3">
           <Textarea
             value={userPrompt}
@@ -82,8 +82,8 @@ export const AiPanel = memo(function AiPanel({
       <Separator />
 
       <section className="space-y-3">
-        <div className="text-[11px] font-semibold tracking-wide text-zinc-500">변경 사항</div>
-        <div className="rounded-lg border border-zinc-200 bg-white/70 p-2.5">
+        <div className="text-[11px] font-semibold tracking-wide text-muted-foreground">변경 사항</div>
+        <div className="rounded-lg border border-border bg-background/70 p-2.5">
           {pendingChange ? (
             <div className="space-y-3 text-xs text-muted-foreground">
               <div className="font-semibold text-foreground">
@@ -106,7 +106,7 @@ export const AiPanel = memo(function AiPanel({
         </div>
       </section>
 
-      <div className="mt-auto flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-2.5 py-2 text-xs text-muted-foreground">
+      <div className="mt-auto flex items-center gap-2 rounded-lg border border-border bg-background px-2.5 py-2 text-xs text-muted-foreground">
         <span className="h-2 w-2 rounded-full bg-primary" />
         {status}
       </div>

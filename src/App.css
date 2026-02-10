@@ -47,6 +47,31 @@
     --radius: 0.5rem;
   }
 
+  .dark {
+    --background: 222 17% 10%;
+    --foreground: 220 15% 92%;
+
+    --muted: 222 12% 16%;
+    --muted-foreground: 220 10% 66%;
+
+    --popover: 222 17% 12%;
+    --popover-foreground: 220 15% 92%;
+
+    --card: 222 16% 13%;
+    --card-foreground: 220 15% 92%;
+
+    --border: 220 10% 24%;
+    --input: 220 10% 24%;
+
+    --primary: 211 100% 58%;
+    --primary-foreground: 222 16% 10%;
+
+    --accent: 222 11% 20%;
+    --accent-foreground: 220 15% 92%;
+
+    --ring: 211 100% 58%;
+  }
+
   * {
     @apply border-border;
   }
@@ -82,9 +107,13 @@
     line-height: 1.82;
     font-weight: 430;
     letter-spacing: -0.003em;
-    color: #1d1d1f;
+    color: hsl(var(--foreground));
     background: transparent !important;
     border: 0 !important;
+  }
+
+  .dark .cm-editor {
+    color: hsl(var(--foreground));
   }
 
   .cm-editor,

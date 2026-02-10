@@ -163,7 +163,7 @@ export function FileTreePanel({
 
   return (
     <div className="flex h-full flex-col gap-3">
-      <div className="px-1 text-[11px] font-semibold tracking-wide text-zinc-500">로컬 폴더</div>
+      <div className="px-1 text-[11px] font-semibold tracking-wide text-muted-foreground">로컬 폴더</div>
       <div className="flex items-center gap-2">
         <Button size="sm" variant="outline" className="h-7" onClick={onOpenFolder}>
           폴더 열기
@@ -181,7 +181,7 @@ export function FileTreePanel({
         className="h-8 text-xs"
       />
       <Separator />
-      <div className="min-h-0 flex-1 overflow-auto rounded-lg bg-white/60 p-1.5">
+      <div className="min-h-0 flex-1 overflow-auto rounded-lg bg-card/70 p-1.5">
         {treeRoot ? (
           <div className="space-y-0.5">
             <TreeItem
@@ -197,7 +197,7 @@ export function FileTreePanel({
             />
           </div>
         ) : (
-          <div className="rounded-lg border border-dashed border-zinc-300 bg-white/80 p-3 text-xs text-zinc-500">
+          <div className="rounded-lg border border-dashed border-border bg-background/80 p-3 text-xs text-muted-foreground">
             폴더를 선택하면 파일 트리를 보여줄게요.
           </div>
         )}
