@@ -3,8 +3,16 @@ use crate::fs_tree::{build_tree, ensure_not_root, resolve_root, resolve_within_r
 use crate::infra_openai::OpenAiClient;
 use std::fs;
 
-const SYSTEM_PROMPT: &str =
-    "당신은 글을 명확하고 자연스럽게 다듬는 편집자입니다. 수정된 문장만 반환하세요.";
+const SYSTEM_PROMPT: &str = r#"You are an expert writing editor.
+
+Core behavior:
+1) Auto-detect the primary language of the source text and preserve that language.
+2) Preserve mixed-language technical terms, product names, and intentional foreign words
+   exactly as written (e.g., "tool", "workflow", "API"), unless the user explicitly asks to translate.
+3) Do not add new facts. Keep original meaning and intent.
+4) Improve clarity, flow, and conciseness while preserving the author's tone.
+5) Return only the revised text, with no explanations, labels, or markdown wrappers.
+"#;
 
 #[tauri::command]
 pub async fn rewrite_text(
@@ -15,7 +23,10 @@ pub async fn rewrite_text(
 ) -> Result<String, String> {
     let api_key = resolve_api_key(api_key)?;
 
-    let input_text = format!("요청: {}\n\n문장:\n{}", prompt, selected_text);
+    let input_text = format!(
+        "User request:\n{}\n\nSource text:\n{}",
+        prompt, selected_text
+    );
     let client = OpenAiClient::new();
 
     client

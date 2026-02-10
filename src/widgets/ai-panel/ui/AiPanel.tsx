@@ -97,9 +97,7 @@ export const AiPanel = memo(function AiPanel({
         <div className="rounded-md border border-border bg-background/70 p-2.5">
           {pendingChange ? (
             <div className="space-y-3 text-xs text-muted-foreground">
-              <div className="font-semibold text-foreground">
-                선택 영역 diff 미리보기
-              </div>
+              <div className="font-semibold text-foreground">수정안 준비됨</div>
               <div className="flex gap-2">
                 <Button size="sm" onClick={onAcceptChange}>
                   적용

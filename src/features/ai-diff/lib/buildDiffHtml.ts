@@ -1,6 +1,6 @@
 import { escapeHtml } from "@/shared/lib";
 
-export function buildDiffHtml(originalText: string, suggestedText: string) {
+export function buildDiffHtml(_originalText: string, suggestedText: string) {
   const toCompactLine = (text: string) =>
     text
       .replace(/\r\n/g, "\n")
@@ -9,7 +9,7 @@ export function buildDiffHtml(originalText: string, suggestedText: string) {
       .replace(/\s{2,}/g, " ")
       .trim();
 
-  const compactOriginal = toCompactLine(originalText);
+  const compactOriginal = toCompactLine(_originalText);
   const compactSuggested = toCompactLine(suggestedText);
   const hasOriginal = compactOriginal.length > 0;
   const hasSuggested = compactSuggested.length > 0;
@@ -17,7 +17,7 @@ export function buildDiffHtml(originalText: string, suggestedText: string) {
   const originalRow = hasOriginal
     ? `<div class="grid grid-cols-[14px_1fr] items-start gap-2 border-b border-border/70 bg-rose-500/12 px-3 py-1.5 text-foreground/90">
         <span class="pt-0.5 text-[11px] font-semibold text-rose-600 dark:text-rose-300/95">-</span>
-        <span class="break-words text-[15px] leading-[1.55] line-through">${escapeHtml(compactOriginal)}</span>
+        <span class="break-words text-[15px] leading-[1.55]">${escapeHtml(compactOriginal)}</span>
       </div>`
     : "";
 

@@ -67,6 +67,7 @@ export const EditorPanel = memo(function EditorPanel({
       return;
     }
     let frameId = 0;
+    let frameId2 = 0;
 
     const placeBelowDiff = () => {
       if (!containerRef.current) return;
@@ -79,8 +80,8 @@ export const EditorPanel = memo(function EditorPanel({
 
       if (diffWidget) {
         const widgetRect = diffWidget.getBoundingClientRect();
-        const rawTop = widgetRect.top - containerRect.top + widgetRect.height + 8;
-        const rawLeft = widgetRect.right - containerRect.left - 168;
+        const rawTop = widgetRect.bottom - containerRect.top + 8;
+        const rawLeft = widgetRect.left - containerRect.left;
         const maxLeft = containerRect.width - 176;
         setFloatingStyle({
           left: Math.max(8, Math.min(rawLeft, maxLeft)),
@@ -105,13 +106,20 @@ export const EditorPanel = memo(function EditorPanel({
       });
     };
 
-    // Wait one frame so CodeMirror widget layout is finalized.
+    // Wait for widget layout and then keep position synced while scrolling.
     frameId = requestAnimationFrame(placeBelowDiff);
-    const timeoutId = window.setTimeout(placeBelowDiff, 40);
+    frameId2 = requestAnimationFrame(() => requestAnimationFrame(placeBelowDiff));
+    const timeoutId = window.setTimeout(placeBelowDiff, 80);
+
+    const scroller = containerRef.current.querySelector(".cm-scroller");
+    const onScroll = () => placeBelowDiff();
+    scroller?.addEventListener("scroll", onScroll, { passive: true });
 
     return () => {
       cancelAnimationFrame(frameId);
+      cancelAnimationFrame(frameId2);
       window.clearTimeout(timeoutId);
+      scroller?.removeEventListener("scroll", onScroll);
     };
   }, [pendingChange, view]);
 

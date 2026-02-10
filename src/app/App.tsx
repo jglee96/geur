@@ -17,6 +17,7 @@ import { AiPanel } from "@/widgets/ai-panel";
 import { Topbar } from "@/widgets/topbar";
 import { DEFAULT_DOC, MODEL_OPTIONS } from "@/shared/config";
 import { SelectionState, PendingChange } from "@/shared/model";
+import { buildDiffHtml, DiffWidget } from "@/features/ai-diff";
 import { useFileTree } from "@/features/file-tree";
 import { useThemeMode } from "@/features/theme";
 import { getDocumentTitle } from "@/entities/document";
@@ -74,11 +75,16 @@ function AppContent() {
 
   const previewExtension = useMemo(() => {
     if (!pendingChange) return null;
-    const removedMark = Decoration.mark({
-      class:
-        "rounded-sm bg-rose-500/12 text-foreground/90 line-through decoration-1",
+    const diffHtml = buildDiffHtml(
+      pendingChange.originalText,
+      pendingChange.suggestedText,
+    );
+    const replaced = Decoration.replace({
+      widget: new DiffWidget(diffHtml),
+      block: true,
+      inclusive: false,
     }).range(pendingChange.from, pendingChange.to);
-    return EditorView.decorations.of(Decoration.set([removedMark], true));
+    return EditorView.decorations.of(Decoration.set([replaced], true));
   }, [pendingChange]);
 
   const editableExtension = useMemo(
