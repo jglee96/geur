@@ -89,43 +89,38 @@ export const EditorPanel = memo(function EditorPanel({
       <div className="text-right text-[11px] text-muted-foreground">
         선택: {selection.text.length}자
       </div>
-      <div className="rounded-2xl bg-card px-8 py-10">
-        <div className="mx-auto w-full max-w-[760px]">
-          <div
-            ref={containerRef}
-            className="relative rounded-xl bg-background px-4 py-3 transition"
-          >
-            <div className="min-h-[74vh]">
-              <CodeMirror
-                value={docText}
-                height="100%"
-                className="h-full"
-                basicSetup={basicSetup}
-                extensions={extensions}
-                onCreateEditor={handleCreateEditor}
-                onUpdate={handleUpdate}
-              />
-            </div>
-            {pendingChange && floatingStyle.visible ? (
-              <div
-                className="absolute z-10 flex items-center gap-2 rounded-xl border border-border bg-popover/95 px-2.5 py-1.5 text-xs text-muted-foreground shadow-[0_8px_20px_rgba(0,0,0,0.14)] backdrop-blur"
-                style={{ left: floatingStyle.left, top: floatingStyle.top }}
-              >
-                <span>AI 변경</span>
-                <Button type="button" size="sm" onClick={onAcceptChange}>
-                  Keep
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={onUndoChange}
-                >
-                  Undo
-                </Button>
-              </div>
-            ) : null}
+      <div className="mx-auto w-full max-w-[760px] px-1 py-4 sm:px-3 sm:py-6">
+        <div ref={containerRef} className="relative">
+          <div className="min-h-[74vh]">
+            <CodeMirror
+              value={docText}
+              height="100%"
+              className="h-full"
+              basicSetup={basicSetup}
+              extensions={extensions}
+              onCreateEditor={handleCreateEditor}
+              onUpdate={handleUpdate}
+            />
           </div>
+          {pendingChange && floatingStyle.visible ? (
+            <div
+              className="absolute z-10 flex items-center gap-2 rounded-xl border border-border bg-popover/95 px-2.5 py-1.5 text-xs text-muted-foreground shadow-[0_8px_20px_rgba(0,0,0,0.14)] backdrop-blur"
+              style={{ left: floatingStyle.left, top: floatingStyle.top }}
+            >
+              <span>AI 변경</span>
+              <Button type="button" size="sm" onClick={onAcceptChange}>
+                Keep
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={onUndoChange}
+              >
+                Undo
+              </Button>
+            </div>
+          ) : null}
         </div>
       </div>
     </div>

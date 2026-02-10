@@ -308,7 +308,7 @@ function AppContent() {
           />
         </aside>
 
-        <section className="flex min-h-0 min-w-0 self-stretch justify-center overflow-y-auto bg-background px-10 py-8">
+        <section className="flex min-h-0 min-w-0 self-stretch justify-center overflow-y-auto bg-card px-10 py-8">
           <EditorPanel
             docText={docText}
             selection={selection}
