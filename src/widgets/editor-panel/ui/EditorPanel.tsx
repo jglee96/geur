@@ -37,6 +37,13 @@ export const EditorPanel = memo(function EditorPanel({
   onSelectionChange,
 }: EditorPanelProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const selectionRafRef = useRef<number | null>(null);
+  const selectionThrottleRef = useRef<number>(0);
+  const pendingSelectionRef = useRef<SelectionState | null>(null);
+  const lastSelectionRef = useRef<{ from: number; to: number }>({
+    from: 0,
+    to: 0,
+  });
   const [view, setView] = useState<EditorView | null>(null);
   const basicSetup = useMemo(
     () => ({
@@ -53,6 +60,7 @@ export const EditorPanel = memo(function EditorPanel({
     visible: boolean;
   }>({ left: 0, top: 0, visible: false });
   const deferredDocText = useDeferredValue(docText);
+  const deferredSelection = useDeferredValue(selection);
   const wordCount = useMemo(() => {
     const words = deferredDocText
       .trim()
@@ -60,6 +68,10 @@ export const EditorPanel = memo(function EditorPanel({
       .filter(Boolean);
     return words.length;
   }, [deferredDocText]);
+  const selectedCount = useMemo(
+    () => Math.max(0, deferredSelection.to - deferredSelection.from),
+    [deferredSelection.from, deferredSelection.to],
+  );
 
   useEffect(() => {
     if (!pendingChange || !view || !containerRef.current) {
@@ -138,11 +150,40 @@ export const EditorPanel = memo(function EditorPanel({
       }
       if (update.selectionSet) {
         const { from, to } = update.state.selection.main;
-        onSelectionChange({ from, to, text: "" });
+        if (
+          from === lastSelectionRef.current.from &&
+          to === lastSelectionRef.current.to
+        ) {
+          return;
+        }
+        lastSelectionRef.current = { from, to };
+        pendingSelectionRef.current = { from, to, text: "" };
+        const now = performance.now();
+        if (now - selectionThrottleRef.current < 50) {
+          return;
+        }
+        selectionThrottleRef.current = now;
+        if (selectionRafRef.current !== null) {
+          cancelAnimationFrame(selectionRafRef.current);
+        }
+        selectionRafRef.current = requestAnimationFrame(() => {
+          if (pendingSelectionRef.current) {
+            onSelectionChange(pendingSelectionRef.current);
+          }
+          selectionRafRef.current = null;
+        });
       }
     },
     [onDocChange, onSelectionChange],
   );
+
+  useEffect(() => {
+    return () => {
+      if (selectionRafRef.current !== null) {
+        cancelAnimationFrame(selectionRafRef.current);
+      }
+    };
+  }, []);
 
   return (
     <div className="flex w-full max-w-[1080px] flex-col gap-2">
@@ -152,7 +193,7 @@ export const EditorPanel = memo(function EditorPanel({
         </div>
         <div className="flex items-center gap-3">
           <span>단어 {wordCount}</span>
-          <span>선택 {Math.max(0, selection.to - selection.from)}자</span>
+          <span>선택 {selectedCount}자</span>
         </div>
       </div>
       <div className="mx-auto w-full max-w-[760px] px-1 py-4 sm:px-3 sm:py-6">

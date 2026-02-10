@@ -135,20 +135,20 @@
 
   .cm-editor .cm-selectionBackground,
   .cm-editor.cm-focused .cm-selectionBackground {
-    background: color-mix(in oklab, hsl(var(--primary)) 32%, transparent) !important;
+    background: rgba(10, 132, 255, 0.26) !important;
   }
 
   .cm-editor .cm-content ::selection {
-    background: color-mix(in oklab, hsl(var(--primary)) 32%, transparent);
+    background: rgba(10, 132, 255, 0.26);
   }
 
   .dark .cm-editor .cm-selectionBackground,
   .dark .cm-editor.cm-focused .cm-selectionBackground {
-    background: color-mix(in oklab, hsl(var(--primary)) 42%, transparent) !important;
+    background: rgba(80, 160, 255, 0.32) !important;
   }
 
   .dark .cm-editor .cm-content ::selection {
-    background: color-mix(in oklab, hsl(var(--primary)) 42%, transparent);
+    background: rgba(80, 160, 255, 0.32);
     color: hsl(var(--foreground));
   }
 
