@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <rect x="64" y="64" width="896" height="896" rx="220" fill="#F5EDDF"/>
+
+  <!-- paper -->
+  <rect x="236" y="176" width="552" height="672" rx="56" fill="#FCF9F3" stroke="#D6C5AB" stroke-width="12"/>
+
+  <!-- text lines -->
+  <rect x="300" y="286" width="430" height="20" rx="10" fill="#655F58"/>
+  <rect x="300" y="334" width="360" height="20" rx="10" fill="#7A736B"/>
+  <rect x="300" y="382" width="398" height="20" rx="10" fill="#7A736B"/>
+  <rect x="300" y="430" width="326" height="20" rx="10" fill="#8C857C"/>
+
+  <!-- ultra simple nib: teardrop + slash -->
+  <g transform="translate(512 658)">
+    <path d="M0-66c44 0 80 30 80 72 0 46-36 82-80 82s-80-36-80-82c0-42 36-72 80-72z" fill="#2D2722"/>
+    <path d="M-62 54L62-54" stroke="#C6A37A" stroke-width="28" stroke-linecap="round"/>
+    <circle cx="0" cy="8" r="13" fill="#FCF9F3"/>
+  </g>
+
+  <circle cx="744" cy="256" r="9" fill="#A2927E"/>
+</svg>
