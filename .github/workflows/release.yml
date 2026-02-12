@@ -1,0 +1,158 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag (e.g. v0.2.0)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  checks: read
+
+jobs:
+  verify_ci:
+    name: Verify CI Status
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ensure required CI checks passed
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const required = new Set(["Frontend Checks", "Rust Check"]);
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const ref = context.sha;
+
+            const allChecks = await github.paginate(
+              github.rest.checks.listForRef,
+              { owner, repo, ref, per_page: 100 }
+            );
+
+            const latestByName = new Map();
+            for (const check of allChecks) {
+              if (!required.has(check.name)) continue;
+              const prev = latestByName.get(check.name);
+              if (!prev || new Date(check.completed_at || 0) > new Date(prev.completed_at || 0)) {
+                latestByName.set(check.name, check);
+              }
+            }
+
+            const missing = [...required].filter((name) => !latestByName.has(name));
+            if (missing.length > 0) {
+              core.setFailed(`Missing required CI checks for ${ref}: ${missing.join(", ")}`);
+              return;
+            }
+
+            const failed = [];
+            for (const [name, check] of latestByName.entries()) {
+              if (check.status !== "completed" || check.conclusion !== "success") {
+                failed.push(`${name} (status=${check.status}, conclusion=${check.conclusion})`);
+              }
+            }
+
+            if (failed.length > 0) {
+              core.setFailed(`Required CI checks not successful: ${failed.join("; ")}`);
+              return;
+            }
+
+            core.info("All required CI checks passed.");
+
+  build:
+    needs: verify_ci
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            artifact: macos
+          - os: ubuntu-22.04
+            artifact: linux
+          - os: windows-latest
+            artifact: windows
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install Linux dependencies
+        if: matrix.os == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            libgtk-3-dev \
+            libglib2.0-dev \
+            libssl-dev \
+            libsoup-3.0-dev \
+            libjavascriptcoregtk-4.1-dev
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Build Tauri app bundle
+        run: npm run tauri build
+
+      - name: Upload bundle artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: bundle-${{ matrix.artifact }}
+          path: src-tauri/target/release/bundle
+          if-no-files-found: error
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download all bundle artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: bundle-*
+          path: release-artifacts
+          merge-multiple: true
+
+      - name: Resolve release tag
+        id: tag
+        run: |
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            echo "value=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create draft release with auto notes
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.value }}
+          name: ${{ steps.tag.outputs.value }}
+          draft: true
+          generate_release_notes: true
+          files: |
+            release-artifacts/**/*.dmg
+            release-artifacts/**/*.deb
+            release-artifacts/**/*.AppImage
+            release-artifacts/**/*.rpm
+            release-artifacts/**/*.msi
+            release-artifacts/**/*.exe
+            release-artifacts/**/*.zip
+            release-artifacts/**/*.sig
+            release-artifacts/**/latest*.json
