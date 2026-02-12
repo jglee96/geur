@@ -1,6 +1,10 @@
 # geur
 
+[![Built with Codex](https://img.shields.io/badge/Built%20with-Codex-0A84FF)](https://openai.com/codex/)
+
 `geur` is a desktop markdown writing app focused on deep writing flow with inline AI rewrite suggestions.
+
+> This project was developed entirely with Codex (AI coding agent), without using a traditional IDE-based implementation workflow.
 
 Built with Tauri + React + CodeMirror, and designed for:
 - distraction-reduced writing
@@ -25,6 +29,16 @@ Built with Tauri + React + CodeMirror, and designed for:
 - `CodeMirror`
 - `Tailwind CSS`
 - `Feature-Sliced Design (FSD)` structure
+
+## Skills Used In Development
+
+- `apple-hig-ui-design`: Apple HIG 기준 UI 방향 정리 및 macOS 느낌의 화면 개선
+- `react-fsd-refactor`: React 코드 구조를 FSD 레이어 중심으로 정리
+- `vercel-react-best-practices`: 렌더링/상태 업데이트 성능 개선 포인트 적용
+- `tailwind-only-styling`: 스타일링을 Tailwind 유틸리티 중심으로 통일
+- `shadcn-ui-design-system`: UI 컴포넌트 일관성 유지 및 토큰 기반 구성
+- `rust-architecture-patterns`: Tauri(Rust) 백엔드 모듈 경계/구조 개선
+- `product-feedback-interviewer`: 사용자 관점(아마추어 작가) 기반 UX 개선 항목 도출
 
 ## Project Structure
 
@@ -56,6 +70,12 @@ For Linux CI/build:
 - `webkit2gtk`, `libsoup3`, `gtk3` related dev packages
 
 ## Local Development
+
+### Development Note
+
+- The implementation workflow for this project is intentionally **Codex-first**.
+- Core architecture, UI iterations, performance tuning, and release automation were developed through Codex-driven changes.
+- This repository is maintained without relying on a traditional IDE-centric coding process.
 
 Install dependencies:
 
