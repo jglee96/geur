@@ -12,11 +12,13 @@ pub async fn rewrite_text(
     api_key: Option<String>,
 ) -> Result<String, String> {
     let api_key = resolve_api_key(api_key)?;
-    let input_text = prompts::rewrite_input(&prompt, &selected_text);
+    let language_profile = prompts::detect_language_profile(&selected_text);
+    let system_prompt = prompts::compose_system_prompt(language_profile);
+    let input_text = prompts::rewrite_input(&prompt, &selected_text, "deep_rewrite");
     let client = OpenAiClient::new();
 
     client
-        .rewrite_text(&model, prompts::system_prompt(), &input_text, &api_key)
+        .rewrite_text(&model, &system_prompt, &input_text, &api_key)
         .await
 }
 
