@@ -25,16 +25,16 @@ exclude-labels:
 autolabeler:
   - label: "feature"
     title:
-      - "/^feat(\(.+\))?:/i"
+      - '/^feat(\(.+\))?:/i'
   - label: "fix"
     title:
-      - "/^fix(\(.+\))?:/i"
+      - '/^fix(\(.+\))?:/i'
   - label: "chore"
     title:
-      - "/^chore(\(.+\))?:/i"
+      - '/^chore(\(.+\))?:/i'
   - label: "refactor"
     title:
-      - "/^refactor(\(.+\))?:/i"
+      - '/^refactor(\(.+\))?:/i'
 
 version-resolver:
   major:
