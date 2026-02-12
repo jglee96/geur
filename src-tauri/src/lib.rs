@@ -2,6 +2,7 @@ mod app;
 mod config;
 mod fs_tree;
 mod infra_openai;
+mod prompts;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
