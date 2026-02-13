@@ -1,32 +1,26 @@
 import { escapeHtml } from "@/shared/lib";
+import { diffWordsWithSpace } from "diff";
 
-export function buildDiffHtml(_originalText: string, suggestedText: string) {
-  const toCompactLine = (text: string) =>
-    text
-      .replace(/\r\n/g, "\n")
-      .replace(/^[\s\n]+|[\s\n]+$/g, "")
-      .replace(/\n+/g, " ")
-      .replace(/\s{2,}/g, " ")
-      .trim();
+export function buildDiffHtml(originalText: string, suggestedText: string) {
+  const normalize = (text: string) =>
+    text.replace(/\r\n/g, "\n").replace(/[\s\n]+$/g, "");
+  const prev = normalize(originalText);
+  const next = normalize(suggestedText);
 
-  const compactOriginal = toCompactLine(_originalText);
-  const compactSuggested = toCompactLine(suggestedText);
-  const hasOriginal = compactOriginal.length > 0;
-  const hasSuggested = compactSuggested.length > 0;
+  const chunks = diffWordsWithSpace(prev, next);
+  const inline = chunks
+    .map((chunk) => {
+      const value = escapeHtml(chunk.value);
+      if (!value) return "";
+      if (chunk.added) {
+        return `<span class="rounded-[3px] bg-emerald-500/22 text-emerald-900 dark:text-emerald-100">${value}</span>`;
+      }
+      if (chunk.removed) {
+        return `<span class="rounded-[3px] bg-rose-500/20 text-rose-900 line-through decoration-rose-500/85 dark:text-rose-100">${value}</span>`;
+      }
+      return `<span>${value}</span>`;
+    })
+    .join("");
 
-  const originalRow = hasOriginal
-    ? `<div class="grid grid-cols-[14px_1fr] items-start gap-2 border-b border-border/70 bg-rose-500/12 px-3 py-1.5 text-foreground/90">
-        <span class="pt-0.5 text-[11px] font-semibold text-rose-600 dark:text-rose-300/95">-</span>
-        <span class="break-words text-[15px] leading-[1.55]">${escapeHtml(compactOriginal)}</span>
-      </div>`
-    : "";
-
-  const suggestedRow = hasSuggested
-    ? `<div class="grid grid-cols-[14px_1fr] items-start gap-2 bg-emerald-500/12 px-3 py-1.5 text-foreground">
-        <span class="pt-0.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-300/95">+</span>
-        <span class="break-words text-[15px] leading-[1.55]">${escapeHtml(compactSuggested)}</span>
-      </div>`
-    : "";
-
-  return `<div class="overflow-hidden rounded-md border border-border/80 bg-background">${originalRow}${suggestedRow}</div>`;
+  return `<div class="rounded-md border border-border/70 bg-background/85 px-3 py-2 text-[15px] leading-[1.62] text-foreground whitespace-pre-wrap break-words">${inline}</div>`;
 }
