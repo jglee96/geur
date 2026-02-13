@@ -207,6 +207,3 @@ jobs:
             release-artifacts/**/*.rpm
             release-artifacts/**/*.msi
             release-artifacts/**/*.exe
-            release-artifacts/**/*.zip
-            release-artifacts/**/*.sig
-            release-artifacts/**/latest*.json
