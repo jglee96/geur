@@ -160,6 +160,39 @@ jobs:
             echo "value=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Delete existing draft release for tag (if any)
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const tag = `${{ steps.tag.outputs.value }}`;
+
+            try {
+              const { data: release } = await github.rest.repos.getReleaseByTag({
+                owner,
+                repo,
+                tag,
+              });
+
+              if (release.draft) {
+                core.info(`Deleting existing draft release id=${release.id} for tag=${tag}`);
+                await github.rest.repos.deleteRelease({
+                  owner,
+                  repo,
+                  release_id: release.id,
+                });
+              } else {
+                core.info(`Release for tag=${tag} already published. Keeping existing release id=${release.id}.`);
+              }
+            } catch (error) {
+              if (error.status === 404) {
+                core.info(`No existing release for tag=${tag}.`);
+              } else {
+                throw error;
+              }
+            }
+
       - name: Create draft release with auto notes
         uses: softprops/action-gh-release@v2
         with:
