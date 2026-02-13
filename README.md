@@ -151,8 +151,7 @@ mv geur.app /Applications/
 ```
 
 Notes:
-- Use `geur-macos-x64.app.zip` on Intel Mac.
-- Use `geur-macos-arm64.app.zip` on Apple Silicon.
+- Apple Silicon only: use `geur-macos-arm64.app.zip`.
 
 ## Security Note
 

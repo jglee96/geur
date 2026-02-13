@@ -42,8 +42,7 @@ template: |
   mv geur.app /Applications/
   ```
 
-  - Intel Mac: use `geur-macos-x64.app.zip`
-  - Apple Silicon: use `geur-macos-arm64.app.zip`
+  - Apple Silicon only: use `geur-macos-arm64.app.zip`
 
   ## What's Changed
 

@@ -69,9 +69,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: macos-13
-            artifact: macos-x64
-            tauri_target: x86_64-apple-darwin
           - os: macos-14
             artifact: macos-arm64
             tauri_target: aarch64-apple-darwin
