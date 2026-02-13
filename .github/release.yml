@@ -1,0 +1,54 @@
+changelog:
+  exclude:
+    labels:
+      - skip-changelog
+  categories:
+    - title: Features
+      labels:
+        - feat
+        - feature
+    - title: Fixes
+      labels:
+        - fix
+        - bug
+    - title: UI/UX
+      labels:
+        - ui
+        - ux
+    - title: Performance
+      labels:
+        - perf
+        - performance
+    - title: Refactor
+      labels:
+        - refactor
+    - title: Build/CI
+      labels:
+        - ci
+        - build
+    - title: Other Changes
+      labels:
+        - "*"
+
+template: |
+  ## Install (macOS Free Mode)
+
+  This release provides macOS artifacts as `*.app.zip` (not notarized/sign-signed `*.dmg`).
+
+  ```bash
+  # Apple Silicon example
+  unzip geur-macos-arm64.app.zip
+  xattr -dr com.apple.quarantine geur.app
+  mv geur.app /Applications/
+  ```
+
+  - Intel Mac: use `geur-macos-x64.app.zip`
+  - Apple Silicon: use `geur-macos-arm64.app.zip`
+
+  ## What's Changed
+
+  $CHANGES
+
+  ## New Contributors
+
+  $CONTRIBUTORS

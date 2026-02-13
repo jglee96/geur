@@ -132,6 +132,28 @@ git push origin v0.1.0
 
 Then open GitHub `Releases`, review draft notes/assets, and publish.
 
+### macOS (Free Mode) Install Guide
+
+- In free mode (without Apple Developer signing/notarization), release asset is distributed as `*.app.zip` instead of signed `*.dmg`.
+- Depending on Gatekeeper policy, macOS may block first launch unless quarantine metadata is removed.
+
+Install steps:
+
+```bash
+# 1) Unzip downloaded asset (example: Apple Silicon)
+unzip geur-macos-arm64.app.zip
+
+# 2) Remove quarantine attribute
+xattr -dr com.apple.quarantine geur.app
+
+# 3) Move to Applications
+mv geur.app /Applications/
+```
+
+Notes:
+- Use `geur-macos-x64.app.zip` on Intel Mac.
+- Use `geur-macos-arm64.app.zip` on Apple Silicon.
+
 ## Security Note
 
 - API keys are user-provided and stored locally in app storage (`localStorage` in renderer).

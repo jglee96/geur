@@ -69,12 +69,18 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: macos-latest
-            artifact: macos
+          - os: macos-13
+            artifact: macos-x64
+            tauri_target: x86_64-apple-darwin
+          - os: macos-14
+            artifact: macos-arm64
+            tauri_target: aarch64-apple-darwin
           - os: ubuntu-22.04
             artifact: linux
+            tauri_target: ""
           - os: windows-latest
             artifact: windows
+            tauri_target: ""
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -108,14 +114,32 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
-      - name: Build Tauri app bundle
+      - name: Build Tauri app bundle (default target)
+        if: matrix.tauri_target == ''
         run: npm run tauri build
+
+      - name: Build Tauri app bundle (explicit target)
+        if: matrix.tauri_target != ''
+        run: npm run tauri build -- --target ${{ matrix.tauri_target }}
+
+      - name: Collect release artifacts (macOS)
+        if: startsWith(matrix.os, 'macos')
+        run: |
+          mkdir -p release-artifacts
+          APP_PATH="src-tauri/target/${{ matrix.tauri_target }}/release/bundle/macos/geur.app"
+          ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "release-artifacts/geur-${{ matrix.artifact }}.app.zip"
+
+      - name: Collect release artifacts (Linux/Windows)
+        if: ${{ !startsWith(matrix.os, 'macos') }}
+        run: |
+          mkdir -p release-artifacts
+          cp -R src-tauri/target/release/bundle/. release-artifacts/
 
       - name: Upload bundle artifacts
         uses: actions/upload-artifact@v4
         with:
           name: bundle-${{ matrix.artifact }}
-          path: src-tauri/target/release/bundle
+          path: release-artifacts
           if-no-files-found: error
 
   release:
@@ -147,7 +171,7 @@ jobs:
           draft: true
           generate_release_notes: true
           files: |
-            release-artifacts/**/*.dmg
+            release-artifacts/**/*.app.zip
             release-artifacts/**/*.deb
             release-artifacts/**/*.AppImage
             release-artifacts/**/*.rpm
