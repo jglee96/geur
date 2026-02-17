@@ -1,5 +1,6 @@
 export type { SelectionState, PendingChange } from "./editor";
 export type { FileNode } from "./file-tree";
+export type { RewriteResult } from "./rewrite-result";
 export type {
   PromptAttachmentSource,
   PromptAttachmentDraft,

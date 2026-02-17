@@ -25,6 +25,7 @@ type AiPanelProps = {
   modelId: string;
   modelOptions: { id: string; label: string }[];
   pendingChange: PendingChange | null;
+  errorMessage: string;
   isBusy: boolean;
   status: string;
   onModelChange: (value: string) => void;
@@ -42,6 +43,7 @@ export const AiPanel = memo(function AiPanel({
   modelId,
   modelOptions,
   pendingChange,
+  errorMessage,
   isBusy,
   status,
   onModelChange,
@@ -211,6 +213,17 @@ export const AiPanel = memo(function AiPanel({
       </section>
 
       <Separator />
+
+      {errorMessage ? (
+        <section className="space-y-2">
+          <div className="px-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-destructive">
+            오류 메시지
+          </div>
+          <div className="rounded-md border border-destructive/35 bg-destructive/10 px-2.5 py-2 text-xs leading-relaxed text-destructive">
+            {errorMessage}
+          </div>
+        </section>
+      ) : null}
 
       <section className="space-y-3">
         <div className="px-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">

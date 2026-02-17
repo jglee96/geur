@@ -21,6 +21,7 @@ import {
   PendingChange,
   PromptAttachmentDraft,
   PromptAttachmentPayload,
+  RewriteResult,
   WorkspaceDroppedFile,
 } from "@/shared/model";
 import { buildDiffHtml, DiffWidget } from "@/features/ai-diff";
@@ -84,6 +85,7 @@ export function EditorWorkspacePage() {
   const [, startSelectionTransition] = useTransition();
   const [userPrompt, setUserPrompt] = useState("더 명확하고 간결하게 다듬어줘.");
   const [pendingChange, setPendingChange] = useState<PendingChange | null>(null);
+  const [aiErrorMessage, setAiErrorMessage] = useState("");
   const [isBusy, setIsBusy] = useState(false);
   const [status, setStatus] = useState("준비됨");
   const [filePath, setFilePath] = useState("");
@@ -219,6 +221,7 @@ export function EditorWorkspacePage() {
     }
 
     setIsBusy(true);
+    setAiErrorMessage("");
     setStatus("AI가 수정안을 만들고 있어요...");
 
     try {
@@ -246,7 +249,7 @@ export function EditorWorkspacePage() {
           source,
         }));
 
-      const suggestion = await invoke<string>("rewrite_text", {
+      const result = await invoke<RewriteResult>("rewrite_text", {
         model: modelId,
         prompt: userPrompt,
         selectedText,
@@ -254,11 +257,27 @@ export function EditorWorkspacePage() {
         attachments,
       });
 
+      if (result.userError) {
+        setAiErrorMessage(result.userError);
+        setStatus("수정안을 만들지 못했어요. 오류 메시지를 확인해 주세요.");
+        push({
+          title: "AI 수정 요청 제한",
+          description: result.userError,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (!result.suggestedText) {
+        setStatus("수정안을 생성하지 못했어요. 다시 시도해 주세요.");
+        return;
+      }
+
       setPendingChange({
         from: activeSelection.from,
         to: activeSelection.to,
         originalText: selectedText,
-        suggestedText: suggestion,
+        suggestedText: result.suggestedText,
       });
       if (editorRef.current) {
         editorRef.current.dispatch({
@@ -278,7 +297,7 @@ export function EditorWorkspacePage() {
     } finally {
       setIsBusy(false);
     }
-  }, [apiKey, docText, isBusy, modelId, pendingChange, userPrompt]);
+  }, [apiKey, docText, isBusy, modelId, pendingChange, push, userPrompt]);
 
   const createAttachmentToken = useCallback(
     (name: string) => {
@@ -483,12 +502,14 @@ export function EditorWorkspacePage() {
       );
     }
     setPendingChange(null);
+    setAiErrorMessage("");
     setStatus("수정이 적용되었습니다.");
   }, [pendingChange]);
 
   const undoChange = useCallback(() => {
     if (!pendingChange) return;
     setPendingChange(null);
+    setAiErrorMessage("");
     setStatus("수정이 취소되었습니다.");
   }, [pendingChange]);
 
@@ -609,6 +630,7 @@ export function EditorWorkspacePage() {
               modelId={modelId}
               modelOptions={MODEL_OPTIONS}
               pendingChange={pendingChange}
+              errorMessage={aiErrorMessage}
               isBusy={isBusy}
               status={status}
               onModelChange={setModelId}
