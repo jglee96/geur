@@ -1,6 +1,9 @@
 Rewrite mode:
 {{rewrite_mode}}
 
+Attached files:
+{{attachments}}
+
 User request:
 {{user_prompt}}
 

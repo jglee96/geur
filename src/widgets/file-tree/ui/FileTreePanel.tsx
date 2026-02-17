@@ -1,5 +1,10 @@
 import React, { useMemo, useState } from "react";
 import { FileNode } from "@/shared/model";
+import {
+  WORKSPACE_ATTACHMENT_MIME,
+  WORKSPACE_ATTACHMENT_TEXT_PREFIX,
+} from "@/shared/config";
+import { setWorkspaceDrag } from "@/shared/lib/workspace-drag-store";
 import { Button, Input, Separator } from "@/shared/ui";
 
 const INDENT = 12;
@@ -41,12 +46,26 @@ function TreeItem({
   const hasChildren = node.isDir && node.children && node.children.length > 0;
   const isOpen = expanded.has(node.path);
   const isSelected = !node.isDir && selectedPath === node.path;
+  const dragPayload = JSON.stringify({ path: node.path, name: node.name });
+
+  const handleDragStart = (event: React.DragEvent<HTMLElement>) => {
+    if (node.isDir) return;
+    setWorkspaceDrag([{ path: node.path, name: node.name }]);
+    event.dataTransfer.effectAllowed = "copy";
+    event.dataTransfer.setData(WORKSPACE_ATTACHMENT_MIME, dragPayload);
+    event.dataTransfer.setData(
+      "text/plain",
+      `${WORKSPACE_ATTACHMENT_TEXT_PREFIX}${dragPayload}`,
+    );
+  };
 
   return (
     <div>
       <div
         className="flex items-center gap-1 rounded-md py-0.5 text-xs text-foreground hover:bg-accent/60"
         style={{ paddingLeft: level * INDENT }}
+        draggable={!node.isDir}
+        onDragStart={handleDragStart}
       >
         {node.isDir ? (
           <button
@@ -65,6 +84,16 @@ function TreeItem({
           onDoubleClick={() =>
             node.isDir ? toggle(node.path) : onOpenFile(node.path)
           }
+          onMouseDown={() => {
+            if (node.isDir) return;
+            setWorkspaceDrag([{ path: node.path, name: node.name }]);
+          }}
+          onPointerDown={() => {
+            if (node.isDir) return;
+            setWorkspaceDrag([{ path: node.path, name: node.name }]);
+          }}
+          draggable={!node.isDir}
+          onDragStart={handleDragStart}
           className={`flex-1 truncate rounded-[5px] px-1.5 py-0.5 text-left ${
             isSelected
               ? "bg-primary/15 text-foreground"

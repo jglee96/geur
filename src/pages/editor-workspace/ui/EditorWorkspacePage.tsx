@@ -16,7 +16,13 @@ import { FileTreePanel } from "@/widgets/file-tree";
 import { AiPanel } from "@/widgets/ai-panel";
 import { Topbar } from "@/widgets/topbar";
 import { DEFAULT_DOC, MODEL_OPTIONS } from "@/shared/config";
-import { SelectionState, PendingChange } from "@/shared/model";
+import {
+  SelectionState,
+  PendingChange,
+  PromptAttachmentDraft,
+  PromptAttachmentPayload,
+  WorkspaceDroppedFile,
+} from "@/shared/model";
 import { buildDiffHtml, DiffWidget } from "@/features/ai-diff";
 import { useFileTree } from "@/features/file-tree";
 import { useThemeMode } from "@/features/theme";
@@ -24,10 +30,55 @@ import { getDocumentTitle } from "@/entities/document";
 import { useToast } from "@/shared/ui";
 
 const DEFAULT_SELECTION: SelectionState = { from: 0, to: 0, text: "" };
+const TOKEN_REGEX = /@첨부\[[^\]]+\]/g;
+const MAX_ATTACHMENT_COUNT = 5;
+const MAX_ATTACHMENT_BYTES = 200 * 1024;
+const SUPPORTED_TEXT_EXTENSIONS = new Set([
+  ".txt",
+  ".md",
+  ".mdx",
+  ".json",
+  ".yaml",
+  ".yml",
+  ".toml",
+  ".csv",
+  ".ts",
+  ".tsx",
+  ".js",
+  ".jsx",
+  ".py",
+  ".rs",
+  ".go",
+  ".java",
+  ".c",
+  ".cpp",
+  ".h",
+  ".hpp",
+  ".css",
+  ".html",
+  ".xml",
+  ".sql",
+]);
+
+function extractPromptTokens(prompt: string) {
+  return new Set(prompt.match(TOKEN_REGEX) ?? []);
+}
+
+function getBasename(path: string) {
+  return path.split(/[\\/]/).pop() || path;
+}
+
+function getExtension(name: string) {
+  const dot = name.lastIndexOf(".");
+  return dot < 0 ? "" : name.slice(dot).toLowerCase();
+}
 
 export function EditorWorkspacePage() {
   const editorRef = useRef<EditorView | null>(null);
   const selectionRef = useRef<SelectionState>(DEFAULT_SELECTION);
+  const attachmentsByTokenRef = useRef<Map<string, PromptAttachmentDraft>>(
+    new Map(),
+  );
   const [docText, setDocText] = useState(DEFAULT_DOC);
   const [selection, setSelection] = useState<SelectionState>(DEFAULT_SELECTION);
   const [, startSelectionTransition] = useTransition();
@@ -71,6 +122,16 @@ export function EditorWorkspacePage() {
 
   const handleToggleLeft = useCallback(() => {
     setIsLeftOpen((prev) => !prev);
+  }, []);
+
+  const handleUserPromptChange = useCallback((value: string) => {
+    setUserPrompt(value);
+    const activeTokens = extractPromptTokens(value);
+    for (const token of attachmentsByTokenRef.current.keys()) {
+      if (!activeTokens.has(token)) {
+        attachmentsByTokenRef.current.delete(token);
+      }
+    }
   }, []);
 
   const previewExtension = useMemo(() => {
@@ -173,11 +234,24 @@ export function EditorWorkspacePage() {
         ) ??
         docText.slice(activeSelection.from, activeSelection.to);
 
+      const usedTokens = extractPromptTokens(userPrompt);
+      const attachments: PromptAttachmentPayload[] = Array.from(
+        attachmentsByTokenRef.current.values(),
+      )
+        .filter((item) => usedTokens.has(item.token))
+        .map(({ token, name, content, source }) => ({
+          token,
+          name,
+          content,
+          source,
+        }));
+
       const suggestion = await invoke<string>("rewrite_text", {
         model: modelId,
         prompt: userPrompt,
         selectedText,
         apiKey,
+        attachments,
       });
 
       setPendingChange({
@@ -205,6 +279,191 @@ export function EditorWorkspacePage() {
       setIsBusy(false);
     }
   }, [apiKey, docText, isBusy, modelId, pendingChange, userPrompt]);
+
+  const createAttachmentToken = useCallback(
+    (name: string) => {
+      const existingTokens = new Set([
+        ...attachmentsByTokenRef.current.keys(),
+        ...Array.from(extractPromptTokens(userPrompt)),
+      ]);
+      let index = 1;
+      while (true) {
+        const suffix = index === 1 ? "" : `#${index}`;
+        const token = `@첨부[${name}${suffix}]`;
+        if (!existingTokens.has(token)) {
+          return token;
+        }
+        index += 1;
+      }
+    },
+    [userPrompt],
+  );
+
+  const pushAttachments = useCallback(
+    (drafts: Array<Omit<PromptAttachmentDraft, "token">>) => {
+      if (drafts.length === 0) return [];
+      const allowedCount = Math.max(
+        0,
+        MAX_ATTACHMENT_COUNT - attachmentsByTokenRef.current.size,
+      );
+      const accepted = drafts.slice(0, allowedCount);
+      const tokens: string[] = [];
+
+      for (const draft of accepted) {
+        const token = createAttachmentToken(draft.name);
+        attachmentsByTokenRef.current.set(token, { ...draft, token });
+        tokens.push(token);
+      }
+      return tokens;
+    },
+    [createAttachmentToken],
+  );
+
+  const attachExternalFiles = useCallback(
+    async (files: File[]) => {
+      const drafts: Array<Omit<PromptAttachmentDraft, "token">> = [];
+      let skippedInvalid = 0;
+      let skippedSize = 0;
+      let skippedRead = 0;
+
+      for (const file of files) {
+        const ext = getExtension(file.name);
+        if (!SUPPORTED_TEXT_EXTENSIONS.has(ext)) {
+          skippedInvalid += 1;
+          continue;
+        }
+        if (file.size > MAX_ATTACHMENT_BYTES) {
+          skippedSize += 1;
+          continue;
+        }
+        try {
+          const content = await file.text();
+          if (content.includes("\u0000")) {
+            skippedInvalid += 1;
+            continue;
+          }
+          drafts.push({
+            name: file.name,
+            content,
+            source: "external",
+            size: file.size,
+          });
+        } catch {
+          skippedRead += 1;
+        }
+      }
+
+      const tokens = pushAttachments(drafts);
+      const skippedByLimit = Math.max(0, drafts.length - tokens.length);
+      setStatus(
+        `첨부 추가: ${tokens.length}개${
+          skippedInvalid ? `, 형식 제외 ${skippedInvalid}개` : ""
+        }${skippedSize ? `, 용량 제외 ${skippedSize}개` : ""}${
+          skippedRead ? `, 읽기 실패 ${skippedRead}개` : ""
+        }${skippedByLimit ? `, 개수 제한 제외 ${skippedByLimit}개` : ""}`,
+      );
+      return tokens;
+    },
+    [pushAttachments],
+  );
+
+  const attachExternalPaths = useCallback(
+    async (paths: string[]) => {
+      const drafts: Array<Omit<PromptAttachmentDraft, "token">> = [];
+      let skippedInvalid = 0;
+      let skippedSize = 0;
+      let skippedRead = 0;
+
+      for (const path of paths) {
+        const name = getBasename(path);
+        const ext = getExtension(name);
+        if (!SUPPORTED_TEXT_EXTENSIONS.has(ext)) {
+          skippedInvalid += 1;
+          continue;
+        }
+        try {
+          const content = await readTextFile(path);
+          const size = new Blob([content]).size;
+          if (size > MAX_ATTACHMENT_BYTES || content.includes("\u0000")) {
+            skippedSize += 1;
+            continue;
+          }
+          drafts.push({
+            name,
+            content,
+            source: "external",
+            size,
+          });
+        } catch {
+          skippedRead += 1;
+        }
+      }
+
+      const tokens = pushAttachments(drafts);
+      const skippedByLimit = Math.max(0, drafts.length - tokens.length);
+      setStatus(
+        `외부 경로 첨부: ${tokens.length}개${
+          skippedInvalid ? `, 형식 제외 ${skippedInvalid}개` : ""
+        }${skippedSize ? `, 용량 제외 ${skippedSize}개` : ""}${
+          skippedRead ? `, 읽기 실패 ${skippedRead}개` : ""
+        }${skippedByLimit ? `, 개수 제한 제외 ${skippedByLimit}개` : ""}`,
+      );
+      return tokens;
+    },
+    [pushAttachments],
+  );
+
+  const attachWorkspaceFiles = useCallback(
+    async (files: WorkspaceDroppedFile[]) => {
+      if (!rootPath) {
+        setStatus("폴더를 먼저 열어야 파일 첨부를 사용할 수 있어요.");
+        return [];
+      }
+
+      const drafts: Array<Omit<PromptAttachmentDraft, "token">> = [];
+      let skippedInvalid = 0;
+      let skippedSize = 0;
+      let skippedRead = 0;
+
+      for (const file of files) {
+        const ext = getExtension(file.name);
+        if (!SUPPORTED_TEXT_EXTENSIONS.has(ext)) {
+          skippedInvalid += 1;
+          continue;
+        }
+        const relativePath = file.path.replace(/^\/+/, "");
+        const fullPath = `${rootPath}/${relativePath}`;
+        try {
+          const content = await readTextFile(fullPath);
+          const size = new Blob([content]).size;
+          if (size > MAX_ATTACHMENT_BYTES || content.includes("\u0000")) {
+            skippedSize += 1;
+            continue;
+          }
+          drafts.push({
+            name: getBasename(file.name),
+            content,
+            source: "workspace",
+            size,
+          });
+        } catch {
+          skippedRead += 1;
+        }
+      }
+
+      const tokens = pushAttachments(drafts);
+      const skippedByLimit = Math.max(0, drafts.length - tokens.length);
+      setStatus(
+        `워크스페이스 첨부: ${tokens.length}개${
+          skippedInvalid ? `, 형식 제외 ${skippedInvalid}개` : ""
+        }${skippedSize ? `, 용량 제외 ${skippedSize}개` : ""}${
+          skippedRead ? `, 읽기 실패 ${skippedRead}개` : ""
+        }${skippedByLimit ? `, 개수 제한 제외 ${skippedByLimit}개` : ""}`,
+      );
+      return tokens;
+    },
+    [pushAttachments, rootPath],
+  );
 
   const acceptChange = useCallback(() => {
     if (!pendingChange) return;
@@ -353,10 +612,13 @@ export function EditorWorkspacePage() {
               isBusy={isBusy}
               status={status}
               onModelChange={setModelId}
-              onUserPromptChange={setUserPrompt}
+              onUserPromptChange={handleUserPromptChange}
               onRequestChange={requestChange}
               onAcceptChange={acceptChange}
               onUndoChange={undoChange}
+              onAttachExternalFiles={attachExternalFiles}
+              onAttachExternalPaths={attachExternalPaths}
+              onAttachWorkspaceFiles={attachWorkspaceFiles}
             />
           ) : (
             <div className="px-2 py-2 text-xs text-muted-foreground">

@@ -1,5 +1,14 @@
-import React, { memo } from "react";
-import { PendingChange } from "@/shared/model";
+import React, { memo, useCallback, useEffect, useRef } from "react";
+import { getCurrentWebview } from "@tauri-apps/api/webview";
+import { PendingChange, WorkspaceDroppedFile } from "@/shared/model";
+import {
+  WORKSPACE_ATTACHMENT_MIME,
+  WORKSPACE_ATTACHMENT_TEXT_PREFIX,
+} from "@/shared/config";
+import {
+  clearWorkspaceDrag,
+  getWorkspaceDrag,
+} from "@/shared/lib/workspace-drag-store";
 import {
   Button,
   Select,
@@ -23,6 +32,9 @@ type AiPanelProps = {
   onRequestChange: () => void;
   onAcceptChange: () => void;
   onUndoChange: () => void;
+  onAttachExternalFiles: (files: File[]) => Promise<string[]>;
+  onAttachExternalPaths: (paths: string[]) => Promise<string[]>;
+  onAttachWorkspaceFiles: (files: WorkspaceDroppedFile[]) => Promise<string[]>;
 };
 
 export const AiPanel = memo(function AiPanel({
@@ -37,7 +49,145 @@ export const AiPanel = memo(function AiPanel({
   onRequestChange,
   onAcceptChange,
   onUndoChange,
+  onAttachExternalFiles,
+  onAttachExternalPaths,
+  onAttachWorkspaceFiles,
 }: AiPanelProps) {
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+  const insertTokensAtCaret = useCallback(
+    (tokens: string[]) => {
+      if (!tokens.length) return;
+      const textarea = textareaRef.current;
+      const joined = tokens.join(" ");
+      if (!textarea) {
+        const space = userPrompt.trim() ? " " : "";
+        onUserPromptChange(`${userPrompt}${space}${joined}`);
+        return;
+      }
+
+      const start = textarea.selectionStart ?? userPrompt.length;
+      const end = textarea.selectionEnd ?? start;
+      const before = userPrompt.slice(0, start);
+      const after = userPrompt.slice(end);
+      const leading = before.length > 0 && !/\s$/.test(before) ? " " : "";
+      const trailing = after.length > 0 && !/^\s/.test(after) ? " " : "";
+      const insertion = `${leading}${joined}${trailing}`;
+      textarea.setRangeText(insertion, start, end, "end");
+      onUserPromptChange(textarea.value);
+      textarea.focus();
+    },
+    [onUserPromptChange, userPrompt],
+  );
+
+  const parseWorkspaceDrop = (
+    dataTransfer: DataTransfer,
+    allowStoreFallback: boolean,
+  ): WorkspaceDroppedFile[] => {
+    const raw = dataTransfer.getData(WORKSPACE_ATTACHMENT_MIME);
+    const fallbackRaw = dataTransfer.getData("text/plain");
+    const candidate = raw || fallbackRaw;
+    if (!candidate) return allowStoreFallback ? getWorkspaceDrag() : [];
+    try {
+      const normalized = candidate.startsWith(WORKSPACE_ATTACHMENT_TEXT_PREFIX)
+        ? candidate.slice(WORKSPACE_ATTACHMENT_TEXT_PREFIX.length)
+        : candidate;
+      const parsed = JSON.parse(normalized) as
+        | WorkspaceDroppedFile
+        | WorkspaceDroppedFile[];
+      return Array.isArray(parsed) ? parsed : [parsed];
+    } catch {
+      return allowStoreFallback ? getWorkspaceDrag() : [];
+    }
+  };
+
+  const handleDrop = useCallback(
+    async (event: React.DragEvent<HTMLElement>) => {
+      event.preventDefault();
+      const { dataTransfer } = event;
+      const insertedTokens: string[] = [];
+      const droppedFiles = Array.from(dataTransfer.files ?? []);
+      const workspaceFiles = parseWorkspaceDrop(dataTransfer, true);
+      let workspaceTokenCount = 0;
+
+      if (workspaceFiles.length > 0) {
+        const tokens = await onAttachWorkspaceFiles(workspaceFiles);
+        insertedTokens.push(...tokens);
+        workspaceTokenCount = tokens.length;
+        clearWorkspaceDrag();
+      }
+
+      if ((workspaceFiles.length === 0 || workspaceTokenCount === 0) && droppedFiles.length > 0) {
+        const tokens = await onAttachExternalFiles(droppedFiles);
+        insertedTokens.push(...tokens);
+        clearWorkspaceDrag();
+      }
+
+      insertTokensAtCaret(insertedTokens);
+    },
+    [insertTokensAtCaret, onAttachExternalFiles, onAttachWorkspaceFiles],
+  );
+
+  const handleDragOver = useCallback(
+    (event: React.DragEvent<HTMLElement>) => {
+      event.preventDefault();
+      event.dataTransfer.dropEffect = "copy";
+    },
+    [],
+  );
+
+  useEffect(() => {
+    let disposed = false;
+    let unlisten: (() => void) | undefined;
+
+    const setup = async () => {
+      const webview = getCurrentWebview();
+      unlisten = await webview.onDragDropEvent(async (event) => {
+        if (disposed) return;
+        if (event.payload.type !== "drop") return;
+        const droppedPaths = event.payload.paths ?? [];
+        const textarea = textareaRef.current;
+        if (!textarea) return;
+        const rect = textarea.getBoundingClientRect();
+        const point = event.payload.position;
+        const inside =
+          point.x >= rect.left &&
+          point.x <= rect.right &&
+          point.y >= rect.top &&
+          point.y <= rect.bottom;
+        if (!inside) return;
+
+        const externalTokens = await onAttachExternalPaths(droppedPaths);
+
+        if (externalTokens.length > 0) {
+          insertTokensAtCaret(externalTokens);
+          clearWorkspaceDrag();
+          return;
+        }
+
+        // Some internal webview drags do not provide filesystem paths to Tauri.
+        const workspaceFallback = getWorkspaceDrag();
+        if (workspaceFallback.length > 0) {
+          const workspaceTokens = await onAttachWorkspaceFiles(workspaceFallback);
+          insertTokensAtCaret(workspaceTokens);
+          clearWorkspaceDrag();
+          return;
+        }
+      });
+    };
+
+    void setup();
+
+    return () => {
+      disposed = true;
+      unlisten?.();
+    };
+  }, [
+    insertTokensAtCaret,
+    onAttachExternalPaths,
+    onAttachWorkspaceFiles,
+  ]);
+
   return (
     <aside className="flex h-full flex-col gap-3 rounded-xl bg-background/55 p-2.5">
       <section className="space-y-2">
@@ -71,8 +221,9 @@ export const AiPanel = memo(function AiPanel({
           <br />
           2) 요청을 짧게 쓰고 AI 수정을 누르세요.
         </div>
-        <div className="space-y-3">
+        <div className="space-y-3" onDrop={handleDrop} onDragOver={handleDragOver}>
           <Textarea
+            ref={textareaRef}
             value={userPrompt}
             onChange={(event) => onUserPromptChange(event.target.value)}
             placeholder="선택 영역을 어떻게 바꿀지 적어주세요."

@@ -5,6 +5,13 @@ const EN_PROFILE: &str = include_str!("../prompts/language-profile/en.md");
 const GENERIC_PROFILE: &str = include_str!("../prompts/language-profile/generic.md");
 const REWRITE_INPUT_TEMPLATE: &str = include_str!("../prompts/rewrite-input.md");
 
+pub struct PromptAttachmentInput<'a> {
+    pub token: &'a str,
+    pub name: &'a str,
+    pub content: &'a str,
+    pub source: &'a str,
+}
+
 #[derive(Clone, Copy)]
 pub enum LanguageProfile {
     Korean,
@@ -49,9 +56,45 @@ pub fn compose_system_prompt(profile: LanguageProfile) -> String {
     )
 }
 
-pub fn rewrite_input(user_prompt: &str, selected_text: &str, mode: &str) -> String {
+fn format_attachments(attachments: &[PromptAttachmentInput<'_>]) -> String {
+    if attachments.is_empty() {
+        return "None".to_string();
+    }
+
+    attachments
+        .iter()
+        .map(|attachment| {
+            let content = attachment.content.replace("\r\n", "\n");
+            let content_block = content
+                .lines()
+                .map(|line| format!("    {}", line))
+                .collect::<Vec<_>>()
+                .join("\n");
+            format!(
+                "- token: {token}\n  name: {name}\n  source: {source}\n  content:\n{content}",
+                token = attachment.token,
+                name = attachment.name,
+                source = attachment.source,
+                content = if content_block.is_empty() {
+                    "    (empty)".to_string()
+                } else {
+                    content_block
+                }
+            )
+        })
+        .collect::<Vec<_>>()
+        .join("\n\n")
+}
+
+pub fn rewrite_input(
+    user_prompt: &str,
+    selected_text: &str,
+    mode: &str,
+    attachments: &[PromptAttachmentInput<'_>],
+) -> String {
     REWRITE_INPUT_TEMPLATE
         .replace("{{rewrite_mode}}", mode)
+        .replace("{{attachments}}", &format_attachments(attachments))
         .replace("{{user_prompt}}", user_prompt)
         .replace("{{selected_text}}", selected_text)
 }
