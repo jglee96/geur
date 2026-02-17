@@ -1,18 +1,7 @@
-use crate::config::resolve_api_key;
 use crate::fs_tree::{build_tree, ensure_not_root, resolve_root, resolve_within_root, FileNode};
-use crate::infra_openai::{OpenAiClient, RewriteResponse};
-use crate::prompts;
-use serde::Deserialize;
+use crate::infra_openai::RewriteResponse;
+use crate::rewrite_service::{self, PromptAttachment, RewriteTextRequest};
 use std::fs;
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct PromptAttachment {
-    pub token: String,
-    pub name: String,
-    pub content: String,
-    pub source: String,
-}
 
 #[tauri::command]
 pub async fn rewrite_text(
@@ -22,26 +11,13 @@ pub async fn rewrite_text(
     api_key: Option<String>,
     attachments: Option<Vec<PromptAttachment>>,
 ) -> Result<RewriteResponse, String> {
-    let api_key = resolve_api_key(api_key)?;
-    let language_profile = prompts::detect_language_profile(&selected_text);
-    let system_prompt = prompts::compose_system_prompt(language_profile);
-    let input_attachments = attachments
-        .as_deref()
-        .unwrap_or(&[])
-        .iter()
-        .map(|attachment| prompts::PromptAttachmentInput {
-            token: &attachment.token,
-            name: &attachment.name,
-            content: &attachment.content,
-            source: &attachment.source,
-        })
-        .collect::<Vec<_>>();
-    let input_text =
-        prompts::rewrite_input(&prompt, &selected_text, "deep_rewrite", &input_attachments);
-    let client = OpenAiClient::new();
-
-    client
-        .rewrite_text(&model, &system_prompt, &input_text, &api_key)
+    rewrite_service::rewrite_text(RewriteTextRequest {
+        model,
+        prompt,
+        selected_text,
+        api_key,
+        attachments: attachments.unwrap_or_default(),
+    })
         .await
 }
 
