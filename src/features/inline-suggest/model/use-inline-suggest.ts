@@ -3,7 +3,15 @@ import { invoke } from "@tauri-apps/api/core";
 import type { EditorView } from "@codemirror/view";
 import type { SelectionState } from "@/shared/model";
 
-type InlineSuggestion = {
+const CONTEXT_BEFORE_LIMIT = 1200;
+const CONTEXT_AFTER_LIMIT = 320;
+const BEFORE_THRESHOLD = 16;
+const CACHE_KEY_BEFORE = 220;
+const CACHE_KEY_AFTER = 120;
+const REQUEST_DEBOUNCE_MS = 420;
+const CACHE_LIMIT = 80;
+
+export type InlineSuggestion = {
   pos: number;
   text: string;
 };
@@ -35,6 +43,18 @@ export function useInlineSuggest({
   const requestIdRef = useRef(0);
   const cacheRef = useRef<Map<string, string>>(new Map());
 
+  const setCached = useCallback((key: string, value: string) => {
+    if (cacheRef.current.has(key)) {
+      cacheRef.current.delete(key);
+    }
+    cacheRef.current.set(key, value);
+    if (cacheRef.current.size <= CACHE_LIMIT) return;
+    const oldestKey = cacheRef.current.keys().next().value;
+    if (oldestKey) {
+      cacheRef.current.delete(oldestKey);
+    }
+  }, []);
+
   useEffect(() => {
     if (disabled || !apiKey) {
       setSuggestion(null);
@@ -46,15 +66,21 @@ export function useInlineSuggest({
     }
 
     const cursor = selection.from;
-    const before = docText.slice(Math.max(0, cursor - 1200), cursor);
-    const after = docText.slice(cursor, Math.min(docText.length, cursor + 320));
+    const before = docText.slice(
+      Math.max(0, cursor - CONTEXT_BEFORE_LIMIT),
+      cursor,
+    );
+    const after = docText.slice(
+      cursor,
+      Math.min(docText.length, cursor + CONTEXT_AFTER_LIMIT),
+    );
 
-    if (before.trim().length < 16) {
+    if (before.trim().length < BEFORE_THRESHOLD) {
       setSuggestion(null);
       return;
     }
 
-    const cacheKey = `${modelId}::${before.slice(-220)}::${after.slice(0, 120)}`;
+    const cacheKey = `${modelId}::${before.slice(-CACHE_KEY_BEFORE)}::${after.slice(0, CACHE_KEY_AFTER)}`;
     if (cacheRef.current.has(cacheKey)) {
       const cached = cacheRef.current.get(cacheKey) ?? "";
       setSuggestion(cached ? { pos: cursor, text: cached } : null);
@@ -73,7 +99,7 @@ export function useInlineSuggest({
 
         if (requestIdRef.current !== currentRequestId) return;
         const text = normalizeSuggestion(result);
-        cacheRef.current.set(cacheKey, text);
+        setCached(cacheKey, text);
         if (!text) {
           setSuggestion(null);
           return;
@@ -89,12 +115,12 @@ export function useInlineSuggest({
           setSuggestion(null);
         }
       }
-    }, 420);
+    }, REQUEST_DEBOUNCE_MS);
 
     return () => {
       window.clearTimeout(timeoutId);
     };
-  }, [apiKey, disabled, docText, modelId, selection, selectionRef]);
+  }, [apiKey, disabled, docText, modelId, selection, selectionRef, setCached]);
 
   const acceptSuggestion = useCallback(() => {
     if (!suggestion) return false;

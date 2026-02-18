@@ -1,28 +1,26 @@
 import {
   useCallback,
   useEffect,
-  useMemo,
   useRef,
   useState,
   useTransition,
 } from "react";
-import { Decoration, EditorView, keymap } from "@codemirror/view";
-import { markdown } from "@codemirror/lang-markdown";
+import { EditorView } from "@codemirror/view";
 import { EditorPanel } from "@/widgets/editor-panel";
 import { FileTreePanel } from "@/widgets/file-tree";
 import { AiPanel } from "@/widgets/ai-panel";
 import { Topbar } from "@/widgets/topbar";
 import { DEFAULT_DOC, MODEL_OPTIONS } from "@/shared/config";
 import { SelectionState } from "@/shared/model";
-import { buildDiffHtml, DiffWidget } from "@/features/ai-diff";
 import { useDocumentIo } from "@/features/document-io";
 import { useFileTree } from "@/features/file-tree";
-import { GhostSuggestionWidget, useInlineSuggest } from "@/features/inline-suggest";
+import { useInlineSuggest, useInlineSuggestTabKey } from "@/features/inline-suggest";
 import { useRewriteRequest } from "@/features/rewrite-request";
 import { useThemeMode } from "@/features/theme";
 import { usePromptAttachments } from "@/features/prompt-attachments";
 import { getDocumentTitle } from "@/entities/document";
 import { useToast } from "@/shared/ui";
+import { useEditorExtensions } from "../model/use-editor-extensions";
 
 const DEFAULT_SELECTION: SelectionState = { from: 0, to: 0, text: "" };
 
@@ -106,6 +104,12 @@ export function EditorWorkspacePage() {
     apiKey,
     disabled: Boolean(pendingChange) || isBusy,
   });
+  const handleTabKey = useInlineSuggestTabKey({
+    editorRef,
+    inlineSuggestion,
+    setInlineSuggestion,
+    acceptSuggestion,
+  });
 
   useEffect(() => {
     const storedKey = localStorage.getItem("openai_api_key");
@@ -114,9 +118,7 @@ export function EditorWorkspacePage() {
     }
   }, []);
 
-  const docTitle = useMemo(() => {
-    return getDocumentTitle(docText, filePath);
-  }, [docText, filePath]);
+  const docTitle = getDocumentTitle(docText, filePath);
 
   const handleToggleAi = useCallback(() => {
     setIsAiOpen((prev) => !prev);
@@ -126,63 +128,13 @@ export function EditorWorkspacePage() {
     setIsLeftOpen((prev) => !prev);
   }, []);
 
-  const previewExtension = useMemo(() => {
-    if (!pendingChange) return null;
-    const diffHtml = buildDiffHtml(
-      pendingChange.originalText,
-      pendingChange.suggestedText,
-    );
-    const replaced = Decoration.replace({
-      widget: new DiffWidget(diffHtml),
-      block: true,
-      inclusive: false,
-    }).range(pendingChange.from, pendingChange.to);
-    return EditorView.decorations.of(Decoration.set([replaced], true));
-  }, [pendingChange]);
-
-  const inlineSuggestionExtension = useMemo(() => {
-    if (!inlineSuggestion) return null;
-    const decoration = Decoration.widget({
-      widget: new GhostSuggestionWidget(inlineSuggestion.text),
-      side: 1,
-    }).range(inlineSuggestion.pos);
-    return EditorView.decorations.of(Decoration.set([decoration], true));
-  }, [inlineSuggestion]);
-
-  const editableExtension = useMemo(
-    () => EditorView.editable.of(!pendingChange && !isBusy),
-    [pendingChange, isBusy],
-  );
-
-  const extensions = useMemo(() => {
-    const list = [
-      markdown(),
-      editableExtension,
-      EditorView.lineWrapping,
-      keymap.of([
-        {
-          key: "Tab",
-          run: () => acceptSuggestion(),
-        },
-        {
-          key: "Mod-l",
-          run: () => {
-            handleToggleAi();
-            return true;
-          },
-        },
-      ]),
-    ];
-    if (previewExtension) list.push(previewExtension);
-    if (inlineSuggestionExtension) list.push(inlineSuggestionExtension);
-    return list;
-  }, [
-    acceptSuggestion,
-    editableExtension,
-    handleToggleAi,
-    inlineSuggestionExtension,
-    previewExtension,
-  ]);
+  const extensions = useEditorExtensions({
+    pendingChange,
+    isBusy,
+    inlineSuggestion,
+    onTab: handleTabKey,
+    onToggleAi: handleToggleAi,
+  });
 
   const handleEditorReady = useCallback((view: EditorView) => {
     editorRef.current = view;
