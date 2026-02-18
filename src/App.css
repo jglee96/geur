@@ -133,6 +133,14 @@
     padding: 0;
   }
 
+  .cm-ghost-suggestion {
+    color: hsl(var(--muted-foreground));
+    opacity: 0.58;
+    font-style: normal;
+    pointer-events: none;
+    white-space: pre;
+  }
+
   .cm-editor .cm-selectionBackground,
   .cm-editor.cm-focused .cm-selectionBackground {
     background: rgba(10, 132, 255, 0.26) !important;

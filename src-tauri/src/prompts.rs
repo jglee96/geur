@@ -4,6 +4,8 @@ const KO_PROFILE: &str = include_str!("../prompts/language-profile/ko.md");
 const EN_PROFILE: &str = include_str!("../prompts/language-profile/en.md");
 const GENERIC_PROFILE: &str = include_str!("../prompts/language-profile/generic.md");
 const REWRITE_INPUT_TEMPLATE: &str = include_str!("../prompts/rewrite-input.md");
+const SUGGEST_SYSTEM_PROMPT: &str = include_str!("../prompts/suggest-system.md");
+const SUGGEST_INPUT_TEMPLATE: &str = include_str!("../prompts/suggest-input.md");
 
 pub struct PromptAttachmentInput<'a> {
     pub token: &'a str,
@@ -56,6 +58,20 @@ pub fn compose_system_prompt(profile: LanguageProfile) -> String {
     )
 }
 
+pub fn compose_suggest_system_prompt(profile: LanguageProfile) -> String {
+    let language_profile = match profile {
+        LanguageProfile::Korean => KO_PROFILE,
+        LanguageProfile::English => EN_PROFILE,
+        LanguageProfile::Generic => GENERIC_PROFILE,
+    };
+
+    format!(
+        "{suggest}\n\n{lang}",
+        suggest = SUGGEST_SYSTEM_PROMPT.trim(),
+        lang = language_profile.trim(),
+    )
+}
+
 fn format_attachments(attachments: &[PromptAttachmentInput<'_>]) -> String {
     if attachments.is_empty() {
         return "None".to_string();
@@ -97,4 +113,10 @@ pub fn rewrite_input(
         .replace("{{attachments}}", &format_attachments(attachments))
         .replace("{{user_prompt}}", user_prompt)
         .replace("{{selected_text}}", selected_text)
+}
+
+pub fn suggest_input(before_text: &str, after_text: &str) -> String {
+    SUGGEST_INPUT_TEMPLATE
+        .replace("{{before_text}}", before_text)
+        .replace("{{after_text}}", after_text)
 }

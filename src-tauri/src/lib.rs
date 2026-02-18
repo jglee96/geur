@@ -13,6 +13,7 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         .invoke_handler(tauri::generate_handler![
             app::rewrite_text,
+            app::suggest_next_text,
             app::list_tree,
             app::create_file,
             app::create_folder,

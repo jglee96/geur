@@ -17,6 +17,7 @@ import { SelectionState } from "@/shared/model";
 import { buildDiffHtml, DiffWidget } from "@/features/ai-diff";
 import { useDocumentIo } from "@/features/document-io";
 import { useFileTree } from "@/features/file-tree";
+import { GhostSuggestionWidget, useInlineSuggest } from "@/features/inline-suggest";
 import { useRewriteRequest } from "@/features/rewrite-request";
 import { useThemeMode } from "@/features/theme";
 import { usePromptAttachments } from "@/features/prompt-attachments";
@@ -92,6 +93,19 @@ export function EditorWorkspacePage() {
     onStatus: setStatus,
     pushToast: push,
   });
+  const {
+    suggestion: inlineSuggestion,
+    setSuggestion: setInlineSuggestion,
+    acceptSuggestion,
+  } = useInlineSuggest({
+    editorRef,
+    selectionRef,
+    docText,
+    selection,
+    modelId,
+    apiKey,
+    disabled: Boolean(pendingChange) || isBusy,
+  });
 
   useEffect(() => {
     const storedKey = localStorage.getItem("openai_api_key");
@@ -126,6 +140,15 @@ export function EditorWorkspacePage() {
     return EditorView.decorations.of(Decoration.set([replaced], true));
   }, [pendingChange]);
 
+  const inlineSuggestionExtension = useMemo(() => {
+    if (!inlineSuggestion) return null;
+    const decoration = Decoration.widget({
+      widget: new GhostSuggestionWidget(inlineSuggestion.text),
+      side: 1,
+    }).range(inlineSuggestion.pos);
+    return EditorView.decorations.of(Decoration.set([decoration], true));
+  }, [inlineSuggestion]);
+
   const editableExtension = useMemo(
     () => EditorView.editable.of(!pendingChange && !isBusy),
     [pendingChange, isBusy],
@@ -138,6 +161,10 @@ export function EditorWorkspacePage() {
       EditorView.lineWrapping,
       keymap.of([
         {
+          key: "Tab",
+          run: () => acceptSuggestion(),
+        },
+        {
           key: "Mod-l",
           run: () => {
             handleToggleAi();
@@ -147,8 +174,15 @@ export function EditorWorkspacePage() {
       ]),
     ];
     if (previewExtension) list.push(previewExtension);
+    if (inlineSuggestionExtension) list.push(inlineSuggestionExtension);
     return list;
-  }, [editableExtension, handleToggleAi, previewExtension]);
+  }, [
+    acceptSuggestion,
+    editableExtension,
+    handleToggleAi,
+    inlineSuggestionExtension,
+    previewExtension,
+  ]);
 
   const handleEditorReady = useCallback((view: EditorView) => {
     editorRef.current = view;
@@ -161,6 +195,9 @@ export function EditorWorkspacePage() {
   const handleSelectionChange = useCallback(
     (nextSelection: SelectionState) => {
       selectionRef.current = nextSelection;
+      if (inlineSuggestion && nextSelection.from !== inlineSuggestion.pos) {
+        setInlineSuggestion(null);
+      }
       startSelectionTransition(() => {
         setSelection((prev) => {
           if (prev.from === nextSelection.from && prev.to === nextSelection.to) {
@@ -170,7 +207,7 @@ export function EditorWorkspacePage() {
         });
       });
     },
-    [startSelectionTransition],
+    [inlineSuggestion, setInlineSuggestion, startSelectionTransition],
   );
 
   const handleSaveApiKey = useCallback((value: string) => {

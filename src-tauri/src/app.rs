@@ -1,6 +1,9 @@
 use crate::fs_tree::{build_tree, ensure_not_root, resolve_root, resolve_within_root, FileNode};
 use crate::infra_openai::RewriteResponse;
 use crate::rewrite_service::{self, PromptAttachment, RewriteTextRequest};
+use crate::config::resolve_api_key;
+use crate::infra_openai::OpenAiClient;
+use crate::prompts;
 use std::fs;
 
 #[tauri::command]
@@ -19,6 +22,29 @@ pub async fn rewrite_text(
         attachments: attachments.unwrap_or_default(),
     })
         .await
+}
+
+#[tauri::command]
+pub async fn suggest_next_text(
+    model: String,
+    before_text: String,
+    after_text: String,
+    api_key: Option<String>,
+) -> Result<String, String> {
+    let api_key = resolve_api_key(api_key)?;
+    let language_profile = prompts::detect_language_profile(&format!("{before_text}\n{after_text}"));
+    let system_prompt = prompts::compose_suggest_system_prompt(language_profile);
+    let input_text = prompts::suggest_input(&before_text, &after_text);
+    let client = OpenAiClient::new();
+    let result = client
+        .rewrite_text(&model, &system_prompt, &input_text, &api_key)
+        .await?;
+
+    if let Some(message) = result.user_error {
+        return Err(message);
+    }
+
+    Ok(result.suggested_text.unwrap_or_default().trim().to_string())
 }
 
 #[tauri::command]
