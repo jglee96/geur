@@ -15,6 +15,7 @@ import { Button } from "@/shared/ui";
 
 type EditorPanelProps = {
   docText: string;
+  docExternalVersion: number;
   selection: SelectionState;
   extensions: Extension[];
   pendingChange: PendingChange | null;
@@ -27,6 +28,7 @@ type EditorPanelProps = {
 
 export const EditorPanel = memo(function EditorPanel({
   docText,
+  docExternalVersion,
   selection,
   extensions,
   pendingChange,
@@ -47,6 +49,7 @@ export const EditorPanel = memo(function EditorPanel({
   const initialDocRef = useRef(docText);
   const isApplyingExternalDocRef = useRef(false);
   const hasBootstrappedDocRef = useRef(false);
+  const lastAppliedExternalVersionRef = useRef(0);
   const [view, setView] = useState<EditorView | null>(null);
   const basicSetup = useMemo(
     () => ({
@@ -197,8 +200,13 @@ export const EditorPanel = memo(function EditorPanel({
 
   useEffect(() => {
     if (!view) return;
+    if (docExternalVersion === lastAppliedExternalVersionRef.current) return;
+
     const currentDoc = view.state.doc.toString();
-    if (currentDoc === docText) return;
+    if (currentDoc === docText) {
+      lastAppliedExternalVersionRef.current = docExternalVersion;
+      return;
+    }
 
     isApplyingExternalDocRef.current = true;
     const anchor = Math.min(view.state.selection.main.anchor, docText.length);
@@ -215,7 +223,8 @@ export const EditorPanel = memo(function EditorPanel({
       },
     });
     isApplyingExternalDocRef.current = false;
-  }, [docText, view]);
+    lastAppliedExternalVersionRef.current = docExternalVersion;
+  }, [docExternalVersion, docText, view]);
 
   useEffect(() => {
     return () => {

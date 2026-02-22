@@ -18,6 +18,7 @@ import { useInlineSuggest, useInlineSuggestTabKey } from "@/features/inline-sugg
 import { useRewriteRequest } from "@/features/rewrite-request";
 import { useThemeMode } from "@/features/theme";
 import { usePromptAttachments } from "@/features/prompt-attachments";
+import { useDraftRecovery } from "@/features/draft-recovery";
 import { getDocumentTitle } from "@/entities/document";
 import { useToast } from "@/shared/ui";
 import { useEditorExtensions } from "../model/use-editor-extensions";
@@ -28,6 +29,7 @@ export function EditorWorkspacePage() {
   const editorRef = useRef<EditorView | null>(null);
   const selectionRef = useRef<SelectionState>(DEFAULT_SELECTION);
   const [docText, setDocText] = useState(DEFAULT_DOC);
+  const [docExternalVersion, setDocExternalVersion] = useState(0);
   const [selection, setSelection] = useState<SelectionState>(DEFAULT_SELECTION);
   const [, startSelectionTransition] = useTransition();
   const [userPrompt, setUserPrompt] = useState("더 명확하고 간결하게 다듬어줘.");
@@ -39,6 +41,10 @@ export function EditorWorkspacePage() {
   const [apiKey, setApiKey] = useState("");
   const { themeMode, setThemeMode } = useThemeMode();
   const { push } = useToast();
+  const applyExternalDocChange = useCallback((value: string) => {
+    setDocText(value);
+    setDocExternalVersion((prev) => prev + 1);
+  }, []);
   const {
     rootPath,
     tree,
@@ -62,15 +68,27 @@ export function EditorWorkspacePage() {
     rootPath,
     onStatus: setStatus,
   });
+  const { clearDraft } = useDraftRecovery({
+    docText,
+    filePath,
+    onRestore: ({ docText: recoveredDocText, filePath: recoveredPath }) => {
+      applyExternalDocChange(recoveredDocText);
+      setFilePath(recoveredPath);
+    },
+    onStatus: setStatus,
+  });
   const { handleOpen, handleSave, openMarkdownFile } = useDocumentIo({
     docText,
     filePath,
     rootPath,
-    onDocTextChange: setDocText,
+    onDocTextChange: applyExternalDocChange,
     onFilePathChange: setFilePath,
     onStatus: setStatus,
     onSelectPath: selectPath,
     pushToast: push,
+    onSaveSuccess: () => {
+      clearDraft();
+    },
   });
   const {
     pendingChange,
@@ -83,7 +101,7 @@ export function EditorWorkspacePage() {
     editorRef,
     selectionRef,
     docText,
-    setDocText,
+    setDocText: applyExternalDocChange,
     modelId,
     userPrompt,
     apiKey,
@@ -210,6 +228,7 @@ export function EditorWorkspacePage() {
         <section className="flex min-h-0 min-w-0 self-stretch justify-center overflow-y-auto bg-card px-10 py-8">
           <EditorPanel
             docText={docText}
+            docExternalVersion={docExternalVersion}
             selection={selection}
             extensions={extensions}
             pendingChange={pendingChange}

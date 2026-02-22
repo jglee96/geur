@@ -18,6 +18,8 @@ type UseDocumentIoParams = {
   onStatus: (value: string) => void;
   onSelectPath: (relativePath: string) => void;
   pushToast: ToastPush;
+  onOpenSuccess?: (path: string) => void;
+  onSaveSuccess?: (path: string) => void;
 };
 
 export function useDocumentIo({
@@ -29,6 +31,8 @@ export function useDocumentIo({
   onStatus,
   onSelectPath,
   pushToast,
+  onOpenSuccess,
+  onSaveSuccess,
 }: UseDocumentIoParams) {
   const normalizePath = useCallback((rawPath: string) => {
     if (!rawPath.startsWith("file://")) return rawPath;
@@ -67,6 +71,7 @@ export function useDocumentIo({
       onDocTextChange(content);
       onFilePathChange(path);
       onStatus(`열기 완료: ${path}`);
+      onOpenSuccess?.(path);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       onStatus(`파일 열기에 실패했어요: ${message}`);
@@ -88,6 +93,7 @@ export function useDocumentIo({
       await safeWriteText(normalizedPath, docText);
       onFilePathChange(normalizedPath);
       onStatus(`저장 완료: ${normalizedPath}`);
+      onSaveSuccess?.(normalizedPath);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       onStatus(`파일 저장에 실패했어요: ${message}`);
@@ -113,6 +119,7 @@ export function useDocumentIo({
       onFilePathChange(fullPath);
       onSelectPath(relativePath);
       onStatus(`열기 완료: ${fullPath}`);
+      onOpenSuccess?.(fullPath);
     },
     [
       onDocTextChange,
@@ -122,6 +129,7 @@ export function useDocumentIo({
       pushToast,
       rootPath,
       safeReadText,
+      onOpenSuccess,
     ],
   );
 
