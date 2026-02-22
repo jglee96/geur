@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { readTextFile, writeTextFile } from "@tauri-apps/plugin-fs";
+import { invoke } from "@tauri-apps/api/core";
 
 type ToastPush = (toast: {
   title: string;
@@ -29,6 +30,30 @@ export function useDocumentIo({
   onSelectPath,
   pushToast,
 }: UseDocumentIoParams) {
+  const normalizePath = useCallback((rawPath: string) => {
+    if (!rawPath.startsWith("file://")) return rawPath;
+    return decodeURIComponent(rawPath.replace("file://", ""));
+  }, []);
+
+  const safeReadText = useCallback(async (rawPath: string) => {
+    const normalizedPath = normalizePath(rawPath);
+    try {
+      return await readTextFile(normalizedPath);
+    } catch {
+      return await invoke<string>("read_text_file_any", { path: normalizedPath });
+    }
+  }, [normalizePath]);
+
+  const safeWriteText = useCallback(async (rawPath: string, content: string) => {
+    const normalizedPath = normalizePath(rawPath);
+    try {
+      await writeTextFile(normalizedPath, content);
+      return;
+    } catch {
+      await invoke("write_text_file_any", { path: normalizedPath, content });
+    }
+  }, [normalizePath]);
+
   const handleOpen = useCallback(async () => {
     try {
       const selected = await open({
@@ -36,17 +61,18 @@ export function useDocumentIo({
         filters: [{ name: "Markdown", extensions: ["md", "markdown"] }],
       });
       if (!selected) return;
-      const path = Array.isArray(selected) ? selected[0] : selected;
+      const path = normalizePath(Array.isArray(selected) ? selected[0] : selected);
       if (!path) return;
-      const content = await readTextFile(path);
+      const content = await safeReadText(path);
       onDocTextChange(content);
       onFilePathChange(path);
       onStatus(`열기 완료: ${path}`);
     } catch (error) {
-      onStatus("파일 열기에 실패했어요.");
+      const message = error instanceof Error ? error.message : String(error);
+      onStatus(`파일 열기에 실패했어요: ${message}`);
       console.error(error);
     }
-  }, [onDocTextChange, onFilePathChange, onStatus]);
+  }, [normalizePath, onDocTextChange, onFilePathChange, onStatus, safeReadText]);
 
   const handleSave = useCallback(async () => {
     try {
@@ -58,14 +84,16 @@ export function useDocumentIo({
         });
       }
       if (!path) return;
-      await writeTextFile(path, docText);
-      onFilePathChange(path);
-      onStatus(`저장 완료: ${path}`);
+      const normalizedPath = normalizePath(path);
+      await safeWriteText(normalizedPath, docText);
+      onFilePathChange(normalizedPath);
+      onStatus(`저장 완료: ${normalizedPath}`);
     } catch (error) {
-      onStatus("파일 저장에 실패했어요.");
+      const message = error instanceof Error ? error.message : String(error);
+      onStatus(`파일 저장에 실패했어요: ${message}`);
       console.error(error);
     }
-  }, [docText, filePath, onFilePathChange, onStatus]);
+  }, [docText, filePath, normalizePath, onFilePathChange, onStatus, safeWriteText]);
 
   const openMarkdownFile = useCallback(
     async (relativePath: string) => {
@@ -80,13 +108,21 @@ export function useDocumentIo({
         return;
       }
       const fullPath = `${rootPath}/${relativePath}`;
-      const content = await readTextFile(fullPath);
+      const content = await safeReadText(fullPath);
       onDocTextChange(content);
       onFilePathChange(fullPath);
       onSelectPath(relativePath);
       onStatus(`열기 완료: ${fullPath}`);
     },
-    [onDocTextChange, onFilePathChange, onSelectPath, onStatus, pushToast, rootPath],
+    [
+      onDocTextChange,
+      onFilePathChange,
+      onSelectPath,
+      onStatus,
+      pushToast,
+      rootPath,
+      safeReadText,
+    ],
   );
 
   return {

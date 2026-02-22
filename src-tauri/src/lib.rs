@@ -18,7 +18,9 @@ pub fn run() {
             app::create_file,
             app::create_folder,
             app::delete_path,
-            app::rename_path
+            app::rename_path,
+            app::read_text_file_any,
+            app::write_text_file_any
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

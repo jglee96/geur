@@ -44,6 +44,9 @@ export const EditorPanel = memo(function EditorPanel({
     from: 0,
     to: 0,
   });
+  const initialDocRef = useRef(docText);
+  const isApplyingExternalDocRef = useRef(false);
+  const hasBootstrappedDocRef = useRef(false);
   const [view, setView] = useState<EditorView | null>(null);
   const basicSetup = useMemo(
     () => ({
@@ -137,6 +140,16 @@ export const EditorPanel = memo(function EditorPanel({
 
   const handleCreateEditor = useCallback(
     (nextView: EditorView) => {
+      if (!hasBootstrappedDocRef.current && initialDocRef.current.length > 0) {
+        nextView.dispatch({
+          changes: {
+            from: 0,
+            to: nextView.state.doc.length,
+            insert: initialDocRef.current,
+          },
+        });
+      }
+      hasBootstrappedDocRef.current = true;
       onEditorReady(nextView);
       setView(nextView);
     },
@@ -145,10 +158,15 @@ export const EditorPanel = memo(function EditorPanel({
 
   const handleUpdate = useCallback(
     (update: ViewUpdate) => {
-      if (update.docChanged) {
+      if (update.docChanged && !isApplyingExternalDocRef.current) {
         onDocChange(update.state.doc.toString());
       }
+
+      const isComposing = update.view.composing;
       if (update.selectionSet) {
+        if (isComposing) {
+          return;
+        }
         const { from, to } = update.state.selection.main;
         if (
           from === lastSelectionRef.current.from &&
@@ -178,6 +196,28 @@ export const EditorPanel = memo(function EditorPanel({
   );
 
   useEffect(() => {
+    if (!view) return;
+    const currentDoc = view.state.doc.toString();
+    if (currentDoc === docText) return;
+
+    isApplyingExternalDocRef.current = true;
+    const anchor = Math.min(view.state.selection.main.anchor, docText.length);
+    const head = Math.min(view.state.selection.main.head, docText.length);
+    view.dispatch({
+      changes: {
+        from: 0,
+        to: currentDoc.length,
+        insert: docText,
+      },
+      selection: {
+        anchor,
+        head,
+      },
+    });
+    isApplyingExternalDocRef.current = false;
+  }, [docText, view]);
+
+  useEffect(() => {
     return () => {
       if (selectionRafRef.current !== null) {
         cancelAnimationFrame(selectionRafRef.current);
@@ -200,11 +240,13 @@ export const EditorPanel = memo(function EditorPanel({
         <div ref={containerRef} className="relative">
           <div className="min-h-[74vh]">
             <CodeMirror
-              value={docText}
               height="100%"
               className="h-full"
               basicSetup={basicSetup}
               extensions={extensions}
+              {...(!hasBootstrappedDocRef.current
+                ? { value: initialDocRef.current }
+                : {})}
               onCreateEditor={handleCreateEditor}
               onUpdate={handleUpdate}
             />

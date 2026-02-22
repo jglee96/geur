@@ -5,6 +5,7 @@ use crate::config::resolve_api_key;
 use crate::infra_openai::OpenAiClient;
 use crate::prompts;
 use std::fs;
+use std::path::Path;
 
 #[tauri::command]
 pub async fn rewrite_text(
@@ -102,4 +103,18 @@ pub async fn rename_path(
     let target = resolve_within_root(&root, &to)?;
     fs::rename(&source, &target).map_err(|err| err.to_string())?;
     Ok(())
+}
+
+#[tauri::command]
+pub async fn read_text_file_any(path: String) -> Result<String, String> {
+    fs::read_to_string(path).map_err(|err| err.to_string())
+}
+
+#[tauri::command]
+pub async fn write_text_file_any(path: String, content: String) -> Result<(), String> {
+    let target = Path::new(&path);
+    if let Some(parent) = target.parent() {
+        fs::create_dir_all(parent).map_err(|err| err.to_string())?;
+    }
+    fs::write(target, content).map_err(|err| err.to_string())
 }
