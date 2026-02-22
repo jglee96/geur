@@ -1,5 +1,6 @@
 mod app;
 mod config;
+mod file_text;
 mod fs_tree;
 mod infra_openai;
 mod prompts;

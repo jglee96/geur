@@ -1,11 +1,11 @@
 use crate::fs_tree::{build_tree, ensure_not_root, resolve_root, resolve_within_root, FileNode};
+use crate::file_text;
 use crate::infra_openai::RewriteResponse;
 use crate::rewrite_service::{self, PromptAttachment, RewriteTextRequest};
 use crate::config::resolve_api_key;
 use crate::infra_openai::OpenAiClient;
 use crate::prompts;
 use std::fs;
-use std::path::Path;
 
 #[tauri::command]
 pub async fn rewrite_text(
@@ -107,14 +107,10 @@ pub async fn rename_path(
 
 #[tauri::command]
 pub async fn read_text_file_any(path: String) -> Result<String, String> {
-    fs::read_to_string(path).map_err(|err| err.to_string())
+    file_text::read_any(&path)
 }
 
 #[tauri::command]
 pub async fn write_text_file_any(path: String, content: String) -> Result<(), String> {
-    let target = Path::new(&path);
-    if let Some(parent) = target.parent() {
-        fs::create_dir_all(parent).map_err(|err| err.to_string())?;
-    }
-    fs::write(target, content).map_err(|err| err.to_string())
+    file_text::write_any(&path, &content)
 }

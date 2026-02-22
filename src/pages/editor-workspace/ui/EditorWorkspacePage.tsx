@@ -1,52 +1,53 @@
 import {
   useCallback,
-  useEffect,
   useRef,
   useState,
-  useTransition,
 } from "react";
 import { EditorView } from "@codemirror/view";
-import { save } from "@tauri-apps/plugin-dialog";
-import { invoke } from "@tauri-apps/api/core";
 import { EditorPanel } from "@/widgets/editor-panel";
 import { FileTreePanel } from "@/widgets/file-tree";
 import { AiPanel } from "@/widgets/ai-panel";
 import { Topbar } from "@/widgets/topbar";
-import { DEFAULT_DOC, MODEL_OPTIONS } from "@/shared/config";
+import { MODEL_OPTIONS } from "@/shared/config";
 import { SelectionState } from "@/shared/model";
 import { useDocumentIo } from "@/features/document-io";
 import { useFileTree } from "@/features/file-tree";
 import { useInlineSuggest, useInlineSuggestTabKey } from "@/features/inline-suggest";
 import { useRewriteRequest } from "@/features/rewrite-request";
-import { useThemeMode } from "@/features/theme";
 import { usePromptAttachments } from "@/features/prompt-attachments";
-import { useDraftRecovery } from "@/features/draft-recovery";
+import { useDraftRecovery, useEmergencyDraftActions } from "@/features/draft-recovery";
 import { getDocumentTitle } from "@/entities/document";
 import { useToast } from "@/shared/ui";
 import { useEditorExtensions } from "../model/use-editor-extensions";
-
-const DEFAULT_SELECTION: SelectionState = { from: 0, to: 0, text: "" };
+import { useEditorDocumentState } from "../model/use-editor-document-state";
+import { useEditorSelectionState } from "../model/use-editor-selection-state";
+import { useEditorWorkspaceTopbar } from "../model/use-editor-workspace-topbar";
 
 export function EditorWorkspacePage() {
   const editorRef = useRef<EditorView | null>(null);
-  const selectionRef = useRef<SelectionState>(DEFAULT_SELECTION);
-  const [docText, setDocText] = useState(DEFAULT_DOC);
-  const [docExternalVersion, setDocExternalVersion] = useState(0);
-  const [selection, setSelection] = useState<SelectionState>(DEFAULT_SELECTION);
-  const [, startSelectionTransition] = useTransition();
+  const selectionRef = useRef<SelectionState>({ from: 0, to: 0, text: "" });
   const [userPrompt, setUserPrompt] = useState("더 명확하고 간결하게 다듬어줘.");
   const [status, setStatus] = useState("준비됨");
-  const [filePath, setFilePath] = useState("");
-  const [isAiOpen, setIsAiOpen] = useState(false);
-  const [isLeftOpen, setIsLeftOpen] = useState(true);
   const [modelId, setModelId] = useState(MODEL_OPTIONS[0]?.id ?? "gpt-4o-mini");
-  const [apiKey, setApiKey] = useState("");
-  const { themeMode, setThemeMode } = useThemeMode();
+  const {
+    docText,
+    docExternalVersion,
+    filePath,
+    setFilePath,
+    applyExternalDocChange,
+    handleDocChange,
+  } = useEditorDocumentState();
+  const {
+    isAiOpen,
+    isLeftOpen,
+    apiKey,
+    themeMode,
+    setThemeMode,
+    handleToggleAi,
+    handleToggleLeft,
+    handleSaveApiKey,
+  } = useEditorWorkspaceTopbar({ onStatus: setStatus });
   const { push } = useToast();
-  const applyExternalDocChange = useCallback((value: string) => {
-    setDocText(value);
-    setDocExternalVersion((prev) => prev + 1);
-  }, []);
   const {
     rootPath,
     tree,
@@ -69,6 +70,9 @@ export function EditorWorkspacePage() {
     setUserPrompt,
     rootPath,
     onStatus: setStatus,
+  });
+  const { selection, updateSelection } = useEditorSelectionState({
+    selectionRef,
   });
   const { clearDraft, saveSnapshot, lastDraftUpdatedAt } = useDraftRecovery({
     docText,
@@ -130,23 +134,17 @@ export function EditorWorkspacePage() {
     setInlineSuggestion,
     acceptSuggestion,
   });
-
-  useEffect(() => {
-    const storedKey = localStorage.getItem("openai_api_key");
-    if (storedKey) {
-      setApiKey(storedKey);
-    }
-  }, []);
+  const handleSelectionChange = useCallback(
+    (nextSelection: SelectionState) => {
+      if (inlineSuggestion && nextSelection.from !== inlineSuggestion.pos) {
+        setInlineSuggestion(null);
+      }
+      updateSelection(nextSelection);
+    },
+    [inlineSuggestion, setInlineSuggestion, updateSelection],
+  );
 
   const docTitle = getDocumentTitle(docText, filePath);
-
-  const handleToggleAi = useCallback(() => {
-    setIsAiOpen((prev) => !prev);
-  }, []);
-
-  const handleToggleLeft = useCallback(() => {
-    setIsLeftOpen((prev) => !prev);
-  }, []);
 
   const extensions = useEditorExtensions({
     pendingChange,
@@ -160,10 +158,6 @@ export function EditorWorkspacePage() {
     editorRef.current = view;
   }, []);
 
-  const handleDocChange = useCallback((value: string) => {
-    setDocText(value);
-  }, []);
-
   const handleDocSnapshot = useCallback(
     (value: string) => {
       saveSnapshot(value, filePath, false);
@@ -171,78 +165,13 @@ export function EditorWorkspacePage() {
     [filePath, saveSnapshot],
   );
 
-  const handleSelectionChange = useCallback(
-    (nextSelection: SelectionState) => {
-      selectionRef.current = nextSelection;
-      if (inlineSuggestion && nextSelection.from !== inlineSuggestion.pos) {
-        setInlineSuggestion(null);
-      }
-      startSelectionTransition(() => {
-        setSelection((prev) => {
-          if (prev.from === nextSelection.from && prev.to === nextSelection.to) {
-            return prev;
-          }
-          return nextSelection;
-        });
-      });
-    },
-    [inlineSuggestion, setInlineSuggestion, startSelectionTransition],
-  );
-
-  const handleSaveApiKey = useCallback((value: string) => {
-    setApiKey(value);
-    localStorage.setItem("openai_api_key", value);
-    setStatus("API 키가 저장되었습니다.");
-  }, []);
-
-  const getLiveDocText = useCallback(
-    () => editorRef.current?.state.doc.toString() ?? docText,
-    [docText],
-  );
-
-  const handleEmergencyCopy = useCallback(async () => {
-    const text = getLiveDocText();
-    try {
-      await navigator.clipboard.writeText(text);
-      saveSnapshot(text, filePath, true);
-      setStatus("긴급 복사 완료");
-      return;
-    } catch {
-      const textarea = document.createElement("textarea");
-      textarea.value = text;
-      document.body.appendChild(textarea);
-      textarea.select();
-      const copied = document.execCommand("copy");
-      document.body.removeChild(textarea);
-      if (copied) {
-        saveSnapshot(text, filePath, true);
-        setStatus("긴급 복사 완료");
-      } else {
-        setStatus("긴급 복사 실패: 텍스트를 수동 복사해 주세요.");
-      }
-    }
-  }, [filePath, getLiveDocText, saveSnapshot]);
-
-  const handleEmergencySave = useCallback(async () => {
-    const text = getLiveDocText();
-    const suggestedPath = filePath && filePath.endsWith(".md") ? filePath : "recovery.md";
-    const selectedPath = await save({
-      defaultPath: suggestedPath,
-      filters: [{ name: "Markdown", extensions: ["md"] }],
-    });
-    if (!selectedPath) return;
-    const normalizedPath = selectedPath.startsWith("file://")
-      ? decodeURIComponent(selectedPath.replace("file://", ""))
-      : selectedPath;
-    try {
-      await invoke("write_text_file_any", { path: normalizedPath, content: text });
-      saveSnapshot(text, normalizedPath, true);
-      setStatus(`긴급 저장 완료: ${normalizedPath}`);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      setStatus(`긴급 저장 실패: ${message}`);
-    }
-  }, [filePath, getLiveDocText, saveSnapshot]);
+  const { handleEmergencyCopy, handleEmergencySave } = useEmergencyDraftActions({
+    editorRef,
+    docText,
+    filePath,
+    onStatus: setStatus,
+    saveSnapshot,
+  });
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-background text-foreground">
