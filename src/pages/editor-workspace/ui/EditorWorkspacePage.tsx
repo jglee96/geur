@@ -6,6 +6,8 @@ import {
   useTransition,
 } from "react";
 import { EditorView } from "@codemirror/view";
+import { save } from "@tauri-apps/plugin-dialog";
+import { invoke } from "@tauri-apps/api/core";
 import { EditorPanel } from "@/widgets/editor-panel";
 import { FileTreePanel } from "@/widgets/file-tree";
 import { AiPanel } from "@/widgets/ai-panel";
@@ -68,7 +70,7 @@ export function EditorWorkspacePage() {
     rootPath,
     onStatus: setStatus,
   });
-  const { clearDraft } = useDraftRecovery({
+  const { clearDraft, saveSnapshot, lastDraftUpdatedAt } = useDraftRecovery({
     docText,
     filePath,
     onRestore: ({ docText: recoveredDocText, filePath: recoveredPath }) => {
@@ -162,6 +164,13 @@ export function EditorWorkspacePage() {
     setDocText(value);
   }, []);
 
+  const handleDocSnapshot = useCallback(
+    (value: string) => {
+      saveSnapshot(value, filePath, false);
+    },
+    [filePath, saveSnapshot],
+  );
+
   const handleSelectionChange = useCallback(
     (nextSelection: SelectionState) => {
       selectionRef.current = nextSelection;
@@ -185,6 +194,55 @@ export function EditorWorkspacePage() {
     localStorage.setItem("openai_api_key", value);
     setStatus("API 키가 저장되었습니다.");
   }, []);
+
+  const getLiveDocText = useCallback(
+    () => editorRef.current?.state.doc.toString() ?? docText,
+    [docText],
+  );
+
+  const handleEmergencyCopy = useCallback(async () => {
+    const text = getLiveDocText();
+    try {
+      await navigator.clipboard.writeText(text);
+      saveSnapshot(text, filePath, true);
+      setStatus("긴급 복사 완료");
+      return;
+    } catch {
+      const textarea = document.createElement("textarea");
+      textarea.value = text;
+      document.body.appendChild(textarea);
+      textarea.select();
+      const copied = document.execCommand("copy");
+      document.body.removeChild(textarea);
+      if (copied) {
+        saveSnapshot(text, filePath, true);
+        setStatus("긴급 복사 완료");
+      } else {
+        setStatus("긴급 복사 실패: 텍스트를 수동 복사해 주세요.");
+      }
+    }
+  }, [filePath, getLiveDocText, saveSnapshot]);
+
+  const handleEmergencySave = useCallback(async () => {
+    const text = getLiveDocText();
+    const suggestedPath = filePath && filePath.endsWith(".md") ? filePath : "recovery.md";
+    const selectedPath = await save({
+      defaultPath: suggestedPath,
+      filters: [{ name: "Markdown", extensions: ["md"] }],
+    });
+    if (!selectedPath) return;
+    const normalizedPath = selectedPath.startsWith("file://")
+      ? decodeURIComponent(selectedPath.replace("file://", ""))
+      : selectedPath;
+    try {
+      await invoke("write_text_file_any", { path: normalizedPath, content: text });
+      saveSnapshot(text, normalizedPath, true);
+      setStatus(`긴급 저장 완료: ${normalizedPath}`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      setStatus(`긴급 저장 실패: ${message}`);
+    }
+  }, [filePath, getLiveDocText, saveSnapshot]);
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-background text-foreground">
@@ -231,12 +289,16 @@ export function EditorWorkspacePage() {
             docExternalVersion={docExternalVersion}
             selection={selection}
             extensions={extensions}
+            lastDraftUpdatedAt={lastDraftUpdatedAt}
             pendingChange={pendingChange}
             onAcceptChange={acceptChange}
             onUndoChange={undoChange}
             onEditorReady={handleEditorReady}
             onDocChange={handleDocChange}
+            onDocSnapshot={handleDocSnapshot}
             onSelectionChange={handleSelectionChange}
+            onEmergencyCopy={handleEmergencyCopy}
+            onEmergencySave={handleEmergencySave}
           />
         </section>
 

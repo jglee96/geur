@@ -18,12 +18,16 @@ type EditorPanelProps = {
   docExternalVersion: number;
   selection: SelectionState;
   extensions: Extension[];
+  lastDraftUpdatedAt: number | null;
   pendingChange: PendingChange | null;
   onAcceptChange: () => void;
   onUndoChange: () => void;
   onEditorReady: (view: EditorView) => void;
   onDocChange: (value: string) => void;
+  onDocSnapshot: (value: string) => void;
   onSelectionChange: (selection: SelectionState) => void;
+  onEmergencyCopy: () => void;
+  onEmergencySave: () => void;
 };
 
 export const EditorPanel = memo(function EditorPanel({
@@ -31,12 +35,16 @@ export const EditorPanel = memo(function EditorPanel({
   docExternalVersion,
   selection,
   extensions,
+  lastDraftUpdatedAt,
   pendingChange,
   onAcceptChange,
   onUndoChange,
   onEditorReady,
   onDocChange,
+  onDocSnapshot,
   onSelectionChange,
+  onEmergencyCopy,
+  onEmergencySave,
 }: EditorPanelProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const selectionRafRef = useRef<number | null>(null);
@@ -46,6 +54,7 @@ export const EditorPanel = memo(function EditorPanel({
     from: 0,
     to: 0,
   });
+  const snapshotTimeoutRef = useRef<number | null>(null);
   const initialDocRef = useRef(docText);
   const isApplyingExternalDocRef = useRef(false);
   const hasBootstrappedDocRef = useRef(false);
@@ -162,7 +171,15 @@ export const EditorPanel = memo(function EditorPanel({
   const handleUpdate = useCallback(
     (update: ViewUpdate) => {
       if (update.docChanged && !isApplyingExternalDocRef.current) {
-        onDocChange(update.state.doc.toString());
+        const nextDoc = update.state.doc.toString();
+        onDocChange(nextDoc);
+        if (snapshotTimeoutRef.current !== null) {
+          window.clearTimeout(snapshotTimeoutRef.current);
+        }
+        snapshotTimeoutRef.current = window.setTimeout(() => {
+          onDocSnapshot(nextDoc);
+          snapshotTimeoutRef.current = null;
+        }, 700);
       }
 
       const isComposing = update.view.composing;
@@ -195,7 +212,7 @@ export const EditorPanel = memo(function EditorPanel({
         });
       }
     },
-    [onDocChange, onSelectionChange],
+    [onDocChange, onDocSnapshot, onSelectionChange],
   );
 
   useEffect(() => {
@@ -231,6 +248,9 @@ export const EditorPanel = memo(function EditorPanel({
       if (selectionRafRef.current !== null) {
         cancelAnimationFrame(selectionRafRef.current);
       }
+      if (snapshotTimeoutRef.current !== null) {
+        window.clearTimeout(snapshotTimeoutRef.current);
+      }
     };
   }, []);
 
@@ -241,6 +261,26 @@ export const EditorPanel = memo(function EditorPanel({
           선택 후 `Ctrl/Cmd + L` 또는 오른쪽에서 AI 요청
         </div>
         <div className="flex items-center gap-3">
+          <button
+            type="button"
+            className="rounded-md border border-border bg-background px-2 py-1 text-[11px] text-foreground"
+            onClick={onEmergencyCopy}
+          >
+            긴급 복사
+          </button>
+          <button
+            type="button"
+            className="rounded-md border border-border bg-background px-2 py-1 text-[11px] text-foreground"
+            onClick={onEmergencySave}
+          >
+            긴급 저장
+          </button>
+          <span>
+            자동저장{" "}
+            {lastDraftUpdatedAt
+              ? new Date(lastDraftUpdatedAt).toLocaleTimeString("ko-KR")
+              : "-"}
+          </span>
           <span>단어 {wordCount}</span>
           <span>선택 {selectedCount}자</span>
         </div>
